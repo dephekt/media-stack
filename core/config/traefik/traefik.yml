@@ -1,0 +1,31 @@
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: proxy
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+api:
+  dashboard: true
+
+certificatesResolvers:
+  cf:
+    acme:
+      email: ${ACME_EMAIL}
+      storage: "/letsencrypt/acme.json"
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "${LAN_GATEWAY}:53"

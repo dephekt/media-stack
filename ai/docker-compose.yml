@@ -1,0 +1,65 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:ollama
+    container_name: open-webui
+    restart: always
+    environment:
+      - ENABLE_PERSISTENT_CONFIG
+      - WEBUI_URL
+      - WEBUI_NAME
+      - WEBUI_SECRET_KEY
+      - WEBHOOK_URL
+      - ADMIN_EMAIL
+      - ENABLE_VERSION_UPDATE_CHECK
+      - CORS_ALLOW_ORIGIN
+      - JWT_EXPIRES_IN
+      - WEBUI_API_ENV
+      - AI_FQDN
+      - ENABLE_OAUTH_SIGNUP
+      - ENABLE_OAUTH_GROUP_MANAGEMENT
+      - ENABLE_OAUTH_GROUP_CREATION
+      - OAUTH_GROUP_CLAIM
+      - OAUTH_CLIENT_ID
+      - OAUTH_CLIENT_SECRET
+      - OPENID_PROVIDER_URL
+      - OAUTH_PROVIDER_NAME
+      - OPENID_REDIRECT_URI
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openwebui.rule=Host(`${AI_FQDN}`)"
+      - "traefik.http.routers.openwebui.entrypoints=websecure"
+      - "traefik.http.routers.openwebui.tls.certresolver=cf"
+      - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+      - open-webui:/app/backend/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 3600 open-webui
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  ollama:
+    external: true
+  open-webui:
+    external: true

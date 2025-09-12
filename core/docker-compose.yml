@@ -1,0 +1,74 @@
+services:
+  router:
+    image: traefik:v3.1
+    container_name: router
+    restart: unless-stopped
+    networks:
+      proxy: {}
+      lan:
+        ipv4_address: 192.168.8.241
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/traefik/dynamic:/etc/traefik/dynamic:ro
+      - letsencrypt:/letsencrypt
+    environment:
+      - CLOUDFLARE_DNS_API_TOKEN
+      - ACME_EMAIL
+      - TRAEFIK_CERTIFICATESRESOLVERS_cf_ACME_EMAIL=${ACME_EMAIL}
+      - TRAEFIK_CERTIFICATESRESOLVERS_cf_ACME_DNSCHALLENGE_PROVIDER=cloudflare
+      - TRAEFIK_CERTIFICATESRESOLVERS_cf_ACME_STORAGE=/letsencrypt/acme.json
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`router.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=cf"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.docker.network=proxy"
+
+  auth:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: auth
+    command: ["start-dev"]
+    environment:
+      - KEYCLOAK_ADMIN
+      - KEYCLOAK_ADMIN_PASSWORD
+      - KC_PROXY=edge
+      - KC_HOSTNAME=auth.${DOMAIN}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY_HEADERS=xforwarded
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.${DOMAIN}`)"
+      - "traefik.http.routers.auth.entrypoints=websecure"
+      - "traefik.http.routers.auth.tls.certresolver=cf"
+      - "traefik.http.services.auth.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    networks:
+      - proxy
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel run
+
+networks:
+  proxy:
+    external: true
+  lan:
+    external: true
+    name: core_lan
+
+volumes:
+  keycloak-data:
+  letsencrypt:
