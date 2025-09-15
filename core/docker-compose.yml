@@ -102,6 +102,12 @@ services:
       - SECRET=${ROUTER_FORWARD_AUTH_SECRET}
       - AUTH_HOST=router.${DOMAIN}
       - OIDC_GROUPS_CLAIM=groups
+      # Cookie domain needs to cover any subdomains, because
+      # ComposeRedirectURI and CSRF cookie domain in Gorilla
+      # expect the forwarded request host and `AuthHost` to match
+      # the same configured cookie-domain. Otherwise, the cookie
+      # will not be set and I get a redirect loop.
+      - COOKIE_DOMAIN=.${DOMAIN}
     labels:
       - "traefik.http.services.router-forward-auth.loadbalancer.server.port=4181"
       - "traefik.docker.network=proxy"
