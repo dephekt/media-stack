@@ -11,7 +11,7 @@ HOST_SHIM_IP=192.168.8.250/24
 OP_RUN_CORE=op run --env-file="core/local.env" --
 OP_RUN_AI=op run --env-file="ai/local.env" --
 
-.PHONY: network lan-net shim core-up core-down ai-up ai-down up down restart logs-core logs-ai
+.PHONY: network lan-net shim core-up core-down ai-up ai-down up down restart logs-core logs-ai auth-stop auth-start auth-export auth-import auth-migrate
 
 network:
 	docker network create $(NETWORK) || true
@@ -54,3 +54,33 @@ logs-core:
 
 logs-ai:
 	docker compose -f $(AI_COMPOSE) logs -f | cat
+
+auth-stop:
+	docker compose -f $(CORE_COMPOSE) stop auth
+
+auth-start:
+	docker compose -f $(CORE_COMPOSE) start auth
+
+auth-export: auth-stop
+	mkdir -p ./keycloak-export
+	$(OP_RUN_CORE) \
+	    docker compose -f $(CORE_COMPOSE) run --rm --no-deps \
+		-v ./keycloak-export:/opt/keycloak/data/export \
+		auth export \
+		--dir /opt/keycloak/data/export \
+		--users realm_file
+
+auth-transfer-export:
+	mkdir -p ./keycloak-export
+	mkdir -p ./keycloak-import
+	cp -r ./keycloak-export/* ./keycloak-import/
+
+auth-import: auth-stop
+	mkdir -p ./keycloak-import
+	$(OP_RUN_CORE) \
+		docker compose -f $(CORE_COMPOSE) run --rm --no-deps \
+		-v ./keycloak-import:/opt/keycloak/data/import \
+		auth import \
+		--dir /opt/keycloak/data/import
+
+auth-migrate: auth-export auth-transfer-export auth-import
