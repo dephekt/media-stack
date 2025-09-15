@@ -39,6 +39,10 @@ services:
       - KC_HOSTNAME_STRICT_HTTPS=false
       - KC_HTTP_ENABLED=true
       - KC_PROXY_HEADERS=xforwarded
+      - KC_DB
+      - KC_DB_USERNAME
+      - KC_DB_PASSWORD
+      - KC_DB_URL
     restart: unless-stopped
     networks:
       - proxy
@@ -51,6 +55,23 @@ services:
       - "traefik.docker.network=proxy"
     volumes:
       - keycloak-data:/opt/keycloak/data
+    depends_on:
+      db:
+        condition: service_started
+
+  db:
+    image: mariadb:11.4
+    container_name: keycloak-db
+    restart: unless-stopped
+    environment:
+      - MARIADB_DATABASE=keycloak
+      - MARIADB_USER=${KC_DB_USERNAME}
+      - MARIADB_PASSWORD
+      - MARIADB_ROOT_PASSWORD
+    volumes:
+      - keycloak-mariadb:/var/lib/mysql
+    networks:
+      - proxy
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -72,3 +93,4 @@ networks:
 volumes:
   keycloak-data:
   letsencrypt:
+  keycloak-mariadb:
