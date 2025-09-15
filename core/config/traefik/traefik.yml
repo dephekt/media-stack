@@ -6,6 +6,7 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
+          permanent: true
   websecure:
     address: ":443"
 
@@ -19,6 +20,7 @@ providers:
 
 api:
   dashboard: true
+  insecure: false
 
 certificatesResolvers:
   cf:
@@ -27,5 +29,3 @@ certificatesResolvers:
       storage: "/letsencrypt/acme.json"
       dnsChallenge:
         provider: cloudflare
-        resolvers:
-          - "${LAN_GATEWAY}:53"

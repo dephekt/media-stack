@@ -1,10 +1,12 @@
 services:
   router:
-    image: traefik:v3.1
+    image: traefik:latest
     container_name: router
     restart: unless-stopped
     networks:
-      proxy: {}
+      proxy:
+        aliases:
+          - auth.${DOMAIN}
       lan:
         ipv4_address: 192.168.8.241
     volumes:
@@ -20,21 +22,24 @@ services:
       - TRAEFIK_CERTIFICATESRESOLVERS_cf_ACME_STORAGE=/letsencrypt/acme.json
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`router.${DOMAIN}`)"
+      - "traefik.http.routers.dashboard.rule=Host(`router.${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls.certresolver=cf"
       - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=1443"
+      - "traefik.http.routers.dashboard.middlewares=traefik-forward-auth@file"
       - "traefik.docker.network=proxy"
 
   auth:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.3
     container_name: auth
-    command: ["start-dev"]
+    command: ["start"]
     environment:
       - KEYCLOAK_ADMIN
       - KEYCLOAK_ADMIN_PASSWORD
       - KC_PROXY=edge
-      - KC_HOSTNAME=auth.${DOMAIN}
+      - KC_HOSTNAME=https://auth.${DOMAIN}
+      - KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
       - KC_HOSTNAME_STRICT=false
       - KC_HOSTNAME_STRICT_HTTPS=false
       - KC_HTTP_ENABLED=true
@@ -82,6 +87,35 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     command: tunnel run
+
+  router-forward-auth:
+    image: mesosphere/traefik-forward-auth:latest
+    container_name: router-forward-auth
+    restart: unless-stopped
+    networks:
+      - proxy
+    environment:
+      - PROVIDER_URI=${TFA_PROVIDER_URI}
+      - CLIENT_ID=${ROUTER_FORWARD_AUTH_CLIENT_ID}
+      - CLIENT_SECRET=${ROUTER_FORWARD_AUTH_CLIENT_SECRET}
+      - ENCRYPTION_KEY=${ROUTER_FORWARD_AUTH_ENCRYPTION_KEY}
+      - SECRET=${ROUTER_FORWARD_AUTH_SECRET}
+      - AUTH_HOST=router.${DOMAIN}
+      - OIDC_GROUPS_CLAIM=groups
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.router-forward-auth.rule=Host(`router.${DOMAIN}`) && PathPrefix(`/_oauth`)"
+      - "traefik.http.routers.router-forward-auth.entrypoints=websecure"
+      - "traefik.http.routers.router-forward-auth.tls.certresolver=cf"
+      - "traefik.http.services.router-forward-auth.loadbalancer.server.port=4181"
+      - "traefik.docker.network=proxy"
+    depends_on:
+      router:
+        condition: service_started
+      auth:
+        condition: service_started
+      cloudflared:
+        condition: service_started
 
 networks:
   proxy:
