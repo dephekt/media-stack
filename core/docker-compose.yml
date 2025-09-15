@@ -4,9 +4,7 @@ services:
     container_name: router
     restart: unless-stopped
     networks:
-      proxy:
-        aliases:
-          - auth.${DOMAIN}
+      proxy: {}
       lan:
         ipv4_address: 192.168.8.241
     volumes:
