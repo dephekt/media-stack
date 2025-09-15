@@ -8,6 +8,8 @@ LAN_GATEWAY=192.168.8.1
 ROUTER_IP=192.168.8.241
 HOST_SHIM_IF=lan-shim
 HOST_SHIM_IP=192.168.8.250/24
+OP_RUN_CORE=op run --env-file="core/local.env" --
+OP_RUN_AI=op run --env-file="ai/local.env" --
 
 .PHONY: network lan-net shim core-up core-down ai-up ai-down up down restart logs-core logs-ai
 
@@ -28,13 +30,13 @@ shim:
 	sudo ip link set $(HOST_SHIM_IF) up || true
 
 core-up: network lan-net
-	op run --env-file="core/local.env" -- docker compose -f $(CORE_COMPOSE) up -d
+	$(OP_RUN_CORE) docker compose -f $(CORE_COMPOSE) up -d
 
 core-down:
 	docker compose -f $(CORE_COMPOSE) down
 
 ai-up: network
-	op run --env-file="ai/local.env" -- docker compose -f $(AI_COMPOSE) up -d
+	$(OP_RUN_AI) docker compose -f $(AI_COMPOSE) up -d
 
 ai-down:
 	docker compose -f $(AI_COMPOSE) down
