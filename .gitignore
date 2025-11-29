@@ -1,0 +1,7 @@
+.vscode/
+.cursor/
+**/secrets/
+keycloak-import/
+keycloak-export/
+core/keycloak-providers/keycloak-scripts.jar
+core/tech-blog/

@@ -1,0 +1,9 @@
+{
+  "mappers": [
+    {
+      "name": "Immich Role Mapper",
+      "fileName": "immich-role-mapper.js",
+      "description": "Maps Keycloak groups to Immich role claim"
+    }
+  ]
+}

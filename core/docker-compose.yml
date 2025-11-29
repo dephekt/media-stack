@@ -1,0 +1,221 @@
+services:
+  newt:
+    build:
+      context: .
+      dockerfile: newt.Dockerfile
+    image: local/newt:latest
+    container_name: newt
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - DOCKER_SOCKET=/run/docker.sock
+      - DOCKER_ENFORCE_NETWORK_VALIDATION=true
+      - HEALTH_FILE=/tmp/newt-health
+      - TZ=${TZ}
+    volumes:
+      - /run/docker.sock:/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/newt-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    secrets:
+      - NEWT_ID.env
+      - NEWT_SECRET.env
+    networks:
+      - proxy
+    entrypoint: ["/usr/local/bin/secrets2env.sh", "/entrypoint.sh"]
+    command: ["newt"]
+
+  auth:
+    build:
+      context: .
+      dockerfile: keycloak.Dockerfile
+    image: local/keycloak:26.3-providers
+    container_name: auth
+    env_file:
+      - config.env
+    environment:
+      - KC_PROXY=edge
+      - KC_HOSTNAME=https://auth.${DOMAIN}
+      - KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY_HEADERS=xforwarded
+      # I'm using a script mapper to set immich_role from groups
+      # JavaScript providers are a KC preview feature and needs enabled
+      - KC_FEATURES=scripts:v1
+      - TZ=${TZ}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "pangolin.proxy-resources.auth.name=Keycloak"
+      - "pangolin.proxy-resources.auth.protocol=http"
+      - "pangolin.proxy-resources.auth.full-domain=auth.${DOMAIN}"
+      - "pangolin.proxy-resources.auth.targets[0].method=http"
+      - "pangolin.proxy-resources.auth.targets[0].port=8080"
+    secrets:
+      - KEYCLOAK_ADMIN_PASSWORD.env
+      - KC_DB_PASSWORD.env
+    networks:
+      - proxy
+      - core
+    entrypoint: ["/usr/local/bin/secrets2env.sh", "/opt/keycloak/bin/kc.sh"]
+    command: ["start", "--optimized"]
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11.4
+    container_name: keycloak-db
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - MARIADB_DATABASE=keycloak
+      - MARIADB_USER=${KC_DB_USERNAME}
+      - MARIADB_PASSWORD_FILE=/run/secrets/db_password
+      - MARIADB_ROOT_PASSWORD_FILE=/run/secrets/mariadb_root_password
+      - TZ=${TZ}
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb -ukeycloak -p\"$$(cat /run/secrets/db_password)\" --database=keycloak --execute=\"SELECT 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - keycloak-mariadb:/var/lib/mysql
+    networks:
+      - core
+    secrets:
+      - db_password
+      - mariadb_root_password
+
+  ldap:
+    build:
+      context: .
+      dockerfile: ldap.Dockerfile
+    image: local/openldap:1.5.0-custom
+    container_name: ldap
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - LDAP_ORGANISATION=Dephekt
+      - LDAP_ADMIN_PASSWORD_FILE=/run/secrets/ldap_admin_password
+      - LDAP_CONFIG_PASSWORD_FILE=/run/secrets/ldap_admin_password
+      - LDAP_TLS=false
+      - LDAP_LOG_LEVEL=256
+      - TZ=${TZ}
+    volumes:
+      - openldap-data:/var/lib/ldap
+      - openldap-config:/etc/ldap/slapd.d
+    secrets:
+      - ldap_admin_password
+    networks:
+      - core
+    healthcheck:
+      test: ["CMD-SHELL", "ldapsearch -x -H ldap://localhost:389 -b \"$$LDAP_BASE_DN\" -D \"cn=admin,$$LDAP_BASE_DN\" -w \"$$(cat /run/secrets/ldap_admin_password)\" -s base"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  homepage:
+    build:
+      context: .
+      dockerfile: homepage.Dockerfile
+      args:
+        DOMAIN: ${DOMAIN}
+    image: local/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    labels:
+      - "pangolin.proxy-resources.homepage.name=Homepage"
+      - "pangolin.proxy-resources.homepage.protocol=http"
+      - "pangolin.proxy-resources.homepage.full-domain=www.${DOMAIN}"
+      - "pangolin.proxy-resources.homepage.targets[0].method=http"
+      - "pangolin.proxy-resources.homepage.targets[0].port=80"
+      # Rule 0: Pass /services to auth (require SSO for this path)
+      - "pangolin.proxy-resources.homepage.rules[0].action=pass"
+      - "pangolin.proxy-resources.homepage.rules[0].match=path"
+      - "pangolin.proxy-resources.homepage.rules[0].value=/services"
+      # Rule 1: Allow everything else (bypass auth for all other paths)
+      - "pangolin.proxy-resources.homepage.rules[1].action=allow"
+      - "pangolin.proxy-resources.homepage.rules[1].match=path"
+      - "pangolin.proxy-resources.homepage.rules[1].value=/*"
+      # SSO configuration (only applies to paths that pass to auth)
+      - "pangolin.proxy-resources.homepage.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.homepage.auth.sso-roles[0]=Member"
+    networks:
+      - proxy
+
+  update-manager:
+    image: getwud/wud:latest
+    container_name: update-manager
+    restart: unless-stopped
+    volumes:
+      - /run/docker.sock:/var/run/docker.sock:ro
+      - wud-store:/store
+    environment:
+      - TZ=${TZ}
+      - WUD_LOG_LEVEL=INFO
+      - WUD_WATCH_INTERVAL=12h
+    labels:
+      - "pangolin.proxy-resources.update-manager.name=Update Manager"
+      - "pangolin.proxy-resources.update-manager.protocol=http"
+      - "pangolin.proxy-resources.update-manager.full-domain=updates.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.update-manager.targets[0].method=http"
+      - "pangolin.proxy-resources.update-manager.targets[0].port=3000"
+      - "pangolin.proxy-resources.update-manager.auth.sso-enabled=true"
+    networks:
+      - proxy
+
+volumes:
+  keycloak-data:
+    external: true
+    name: media_keycloak-data
+  keycloak-mariadb:
+    external: true
+    name: media_keycloak-mariadb
+  openldap-data:
+    external: true
+    name: media_openldap-data
+  openldap-config:
+    external: true
+    name: media_openldap-config
+  wud-store:
+
+secrets:
+  KEYCLOAK_ADMIN_PASSWORD.env:
+    file: ./secrets/KEYCLOAK_ADMIN_PASSWORD.env
+  KC_DB_PASSWORD.env:
+    file: ./secrets/DB_PASSWORD.env
+  db_password:
+    file: ./secrets/DB_PASSWORD.env
+  mariadb_root_password:
+    file: ./secrets/MARIADB_ROOT_PASSWORD
+  NEWT_ID.env:
+    file: ./secrets/NEWT_ID.env
+  NEWT_SECRET.env:
+    file: ./secrets/NEWT_SECRET.env
+  ldap_admin_password:
+    file: ./secrets/LDAP_ADMIN_PASSWORD
+
+networks:
+  proxy:
+    external: true
+  core:

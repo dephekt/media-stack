@@ -1,0 +1,46 @@
+services:
+  iptvboss:
+    image: ghcr.io/groenator/iptvboss-docker:3.9.80
+    container_name: iptvboss
+    restart: unless-stopped
+    environment:
+      # Auth is handled by Pangolin -> Keycloak
+      VNC_PASSWORDLESS: true
+      # Clients use the XC server for guide and playlist data
+      # This eliminates Dropbox and Tinyurl dependencies
+      XC_SERVER: true
+      # Update playlist and guide data every 3 hours
+      CRON_SCHEDULE: "0 */3 * * *"
+      # When docker runs as root, /headless/.cache is owned by root, mode 700.
+      # When the entrypoint script starts the XC server, it runs as the `iptvboss` user.
+      # So we need to tell Mesa to use a different path. Ideally, the image would
+      # set $XDG_CACHE_DIR to a clean path owned by `iptvboss`.
+      MESA_SHADER_CACHE_DIR: /headless/.mesa_shader_cache
+      TZ: ${TZ}
+    volumes:
+      # This is an NFS mount from the NAS that exists on the container
+      # host and also my own local machine at this same path. So I can
+      # run IPTVBoss locally against the same data and make changes.
+      # The vnc stuff is for remote access to IPTVBoss.
+      - /media/daniel/iptvboss:/headless/IPTVBoss
+    labels:
+      - "pangolin.proxy-resources.iptvboss.name=IPTVBoss"
+      - "pangolin.proxy-resources.iptvboss.protocol=http"
+      - "pangolin.proxy-resources.iptvboss.full-domain=iptvboss.${DOMAIN}"
+      - "pangolin.proxy-resources.iptvboss.targets[0].enabled=true"
+      - "pangolin.proxy-resources.iptvboss.targets[0].method=http"
+      - "pangolin.proxy-resources.iptvboss.targets[0].port=6901"
+      - "pangolin.proxy-resources.iptvboss.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.iptvboss.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.xtremecodes.name=XC Server"
+      - "pangolin.proxy-resources.xtremecodes.protocol=http"
+      - "pangolin.proxy-resources.xtremecodes.full-domain=tv.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.xtremecodes.targets[0].enabled=true"
+      - "pangolin.proxy-resources.xtremecodes.targets[0].method=http"
+      - "pangolin.proxy-resources.xtremecodes.targets[0].port=8001"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

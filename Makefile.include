@@ -1,0 +1,65 @@
+# Helper to generate the docker command
+# Args: $(1) = Stack Name
+STACK_CMD = docker compose -p $(1) -f $(1)/docker-compose.yml
+
+# COMMON_RULES: Generates up, restart, logs
+# Args:
+#   $(1): Target Prefix (e.g., core or newt)
+#   $(2): Command String (e.g. "docker compose ...")
+#   $(3): Extra flags for 'up'
+#   $(4): Service Name (optional, empty for stack)
+define COMMON_RULES
+.PHONY: $(1)-up $(1)-restart $(1)-logs
+
+$(1)-up:
+	$(2) up -d $(3) $(4)
+
+$(1)-restart:
+	$(2) restart $(4)
+
+$(1)-logs:
+	$(2) logs -f $(4) | cat
+endef
+
+# STACK_RULES: Stack-specific targets (down)
+# Args:
+#   $(1): Stack Name
+#   $(2): Extra flags for 'up'
+define STACK_RULES
+$(call COMMON_RULES,$(1),$(call STACK_CMD,$(1)),$(2))
+.PHONY: $(1)-down
+
+$(1)-down:
+	$(call STACK_CMD,$(1)) down
+endef
+
+# SERVICE_RULES: Service-specific targets (stop, start)
+# Args:
+#   $(1): Service Name
+#   $(2): Stack Name
+#   $(3): Extra flags for 'up'
+define SERVICE_RULES
+$(call COMMON_RULES,$(1),$(call STACK_CMD,$(2)),$(3),$(1))
+.PHONY: $(1)-stop $(1)-start
+
+$(1)-stop:
+	$(call STACK_CMD,$(2)) stop $(1)
+
+$(1)-start:
+	$(call STACK_CMD,$(2)) start $(1)
+endef
+
+# Generate targets for all stacks and services defined in STACKS/SERVICES_* lists,
+$(foreach stack,$(STACKS),$(eval $(call STACK_RULES,$(stack),--build)))
+$(foreach stack,$(STACKS),$(foreach svc,$(SERVICES_$(stack)),$(eval $(call SERVICE_RULES,$(svc),$(stack),--build))))
+
+# Ensure stack-up targets depend on secrets checks/syncing.
+$(foreach stack,$(STACKS),$(eval $(stack)-up: check-secrets sync-secrets))
+
+up: $(foreach stack,$(STACKS),$(stack)-up)
+	@echo "All stacks started"
+
+down: $(foreach stack,$(shell echo $(STACKS) | tr ' ' '\n' | tac | tr '\n' ' '),$(stack)-down)
+	@echo "All stacks stopped"
+
+restart: down up

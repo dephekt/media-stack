@@ -1,0 +1,153 @@
+name: media
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.11
+    container_name: jellyfin
+    restart: unless-stopped
+    user: 1000:1000
+    group_add:
+      - "993"  # render group for GPU access
+    devices:
+      # my gpu render node is /dev/dri/renderR129
+      - /dev/dri:/dev/dri
+    ports:
+      - "8096:8096"
+      - "7359:7359/udp"
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - jellyfin-config:/config
+      - ./cache:/cache
+      - /media/daniel/streaming:/media
+      - ./jellyfin-web-config.json:/jellyfin/jellyfin-web/config.json
+    labels:
+      - "pangolin.proxy-resources.jellyfin.name=Streaming"
+      - "pangolin.proxy-resources.jellyfin.protocol=http"
+      - "pangolin.proxy-resources.jellyfin.full-domain=stream.${DOMAIN}"
+      - "pangolin.proxy-resources.jellyfin.targets[0].port=8096"
+      - "pangolin.proxy-resources.jellyfin.targets[0].enabled=true"
+      - "pangolin.proxy-resources.jellyfin.targets[0].method=http"
+    networks:
+      - proxy
+      - core
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:5.28.0
+    container_name: radarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - radarr-config:/config
+      - /media/daniel/streaming:/media
+    labels:
+      - "pangolin.proxy-resources.radarr.name=Radarr"
+      - "pangolin.proxy-resources.radarr.protocol=http"
+      - "pangolin.proxy-resources.radarr.full-domain=movies.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.radarr.targets[0].enabled=true"
+      - "pangolin.proxy-resources.radarr.targets[0].method=http"
+      - "pangolin.proxy-resources.radarr.auth.sso-enabled=true"
+      # WUD: Force Docker Hub registry for LinuxServer images
+      - "wud.watch.registry=docker.io"
+      - "wud.watch.repository=linuxserver/radarr"
+    networks:
+      - proxy
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:4.0.15
+    container_name: sonarr
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - sonarr-config:/config
+      - /media/daniel/streaming:/media
+    labels:
+      - "pangolin.proxy-resources.sonarr.name=Sonarr"
+      - "pangolin.proxy-resources.sonarr.protocol=http"
+      - "pangolin.proxy-resources.sonarr.full-domain=shows.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.sonarr.targets[0].enabled=true"
+      - "pangolin.proxy-resources.sonarr.targets[0].method=http"
+      - "pangolin.proxy-resources.sonarr.auth.sso-enabled=true"
+      # WUD: Force Docker Hub registry for LinuxServer images
+      - "wud.watch.registry=docker.io"
+      - "wud.watch.repository=linuxserver/sonarr"
+    networks:
+      - proxy
+
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:version-v25.4
+    container_name: nzbget
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - nzbget-config:/config
+      - /media/daniel/streaming:/media
+    labels:
+      - "pangolin.proxy-resources.nzbget.name=NZBGet"
+      - "pangolin.proxy-resources.nzbget.protocol=http"
+      - "pangolin.proxy-resources.nzbget.full-domain=grabs.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.nzbget.targets[0].enabled=true"
+      - "pangolin.proxy-resources.nzbget.targets[0].method=http"
+      - "pangolin.proxy-resources.nzbget.auth.sso-enabled=true"
+      # WUD: Force Docker Hub registry for LinuxServer images
+      - "wud.watch.registry=docker.io"
+      - "wud.watch.repository=linuxserver/nzbget"
+    networks:
+      - proxy
+
+  seerr:
+    image: ghcr.io/fallenbagel/jellyseerr:2.7
+    init: true
+    container_name: seerr
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    volumes:
+      - seerr-config:/app/config
+    labels:
+      - "pangolin.proxy-resources.seerr.name=Requests"
+      - "pangolin.proxy-resources.seerr.protocol=http"
+      - "pangolin.proxy-resources.seerr.full-domain=requests.stream.${DOMAIN}"
+      - "pangolin.proxy-resources.seerr.targets[0].enabled=true"
+      - "pangolin.proxy-resources.seerr.targets[0].method=http"
+      - "pangolin.proxy-resources.seerr.targets[0].port=5055"
+      - "pangolin.proxy-resources.seerr.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.seerr.auth.sso-roles[0]=Member"
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5055/api/v1/status"]
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+
+volumes:
+  jellyfin-config:
+  radarr-config:
+  sonarr-config:
+  nzbget-config:
+  seerr-config:
+
+networks:
+  proxy:
+    external: true
+  core:
+    external: true
+    name: core_core
