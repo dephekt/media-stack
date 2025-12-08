@@ -59,31 +59,17 @@ inject-secrets:
 	@echo "Secrets injected successfully!"
 	@echo "Note: core/secrets/* files are git-ignored and should not be committed"
 
-build-script-providers:
-	@echo "Building Keycloak script providers JAR..."
-	@cd core/keycloak-scripts && zip -r ../keycloak-providers/keycloak-scripts.jar META-INF/ *.js
-	@echo "✓ Built core/keycloak-providers/keycloak-scripts.jar"
-
-check-secrets:
-	@$(foreach secret,$(REQUIRED_SECRETS), \
-		if [ ! -f $(secret) ]; then \
-			echo "ERROR: $(secret) not found!"; \
-			echo "Run 'make inject-secrets' first to generate secrets"; \
-			exit 1; \
-		fi;)
-	@echo "All secrets files present"
-
 sync-secrets: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env core/keycloak-providers core/secrets2env.sh keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml $(REMOTE_HOST):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml $(REMOTE_HOST):~/docker/; \
 		echo "Secrets synced to remote host"; \
 	else \
 		echo "Using local context, no sync needed"; \
 	fi
 
 # Core specific build dependency for keycloak providers
-core-up: build-script-providers
+core-up:
 
 auth-export: auth-stop check-secrets
 	mkdir -p ./keycloak-export
