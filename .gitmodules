@@ -1,4 +1,0 @@
-[submodule "core/tech-blog"]
-	path = core/tech-blog
-	url = git@gitlab.com:dephekt/tech-blog.git
-
