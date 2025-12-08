@@ -1,9 +1,7 @@
 services:
   newt:
-    build:
-      context: .
-      dockerfile: newt.Dockerfile
-    image: local/newt:latest
+    image: codeberg.org/stackdrift-images/newt:1.0.0-newt1.6.0
+
     container_name: newt
     restart: unless-stopped
     env_file:
@@ -30,10 +28,7 @@ services:
     command: ["newt"]
 
   auth:
-    build:
-      context: .
-      dockerfile: keycloak.Dockerfile
-    image: local/keycloak:26.3-providers
+    image: codeberg.org/stackdrift-images/keycloak:1.0.0-keycloak26.3
     container_name: auth
     env_file:
       - config.env
@@ -103,10 +98,7 @@ services:
       - mariadb_root_password
 
   ldap:
-    build:
-      context: .
-      dockerfile: ldap.Dockerfile
-    image: local/openldap:1.5.0-custom
+    image: codeberg.org/stackdrift-images/openldap:1.0.0-openldap1.5.0
     container_name: ldap
     restart: unless-stopped
     env_file:
@@ -133,12 +125,7 @@ services:
       start_period: 30s
 
   homepage:
-    build:
-      context: .
-      dockerfile: homepage.Dockerfile
-      args:
-        DOMAIN: ${DOMAIN}
-    image: local/homepage:latest
+    image: codeberg.org/stackdrift-images/homepage:1.0.0-hugo0.152.1
     container_name: homepage
     restart: unless-stopped
     environment:
