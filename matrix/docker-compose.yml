@@ -1,0 +1,70 @@
+services:
+  homeserver:
+    # Using SHA256 digest for immutability
+    image: jevolk/tuwunel@sha256:247517fb221b31972a0cdaa12a9f39124d4340648f7282e314372b5b1ef2e5a7
+    container_name: matrix
+    restart: unless-stopped
+    
+    env_file:
+      - config.env
+    
+    environment:
+      TUWUNEL_SERVER_NAME: ${MATRIX_SERVER_NAME:-matrix.${DOMAIN}}
+      TUWUNEL_DATABASE_PATH: /var/lib/tuwunel
+      TUWUNEL_PORT: 6167
+      TUWUNEL_ADDRESS: 0.0.0.0
+      TUWUNEL_MAX_REQUEST_SIZE: 20000000  # ~20 MB
+      TUWUNEL_ALLOW_REGISTRATION: true
+      TUWUNEL_ALLOW_FEDERATION: true
+      TUWUNEL_TRUSTED_SERVERS: '["matrix.org"]'
+      TUWUNEL_LOG: info
+      TZ: ${TZ}
+      # Well-known delegation for client and server discovery
+      TUWUNEL_WELL_KNOWN: |
+        {
+        client=https://${MATRIX_SERVER_NAME:-matrix.${DOMAIN}},
+        server=${MATRIX_SERVER_NAME:-matrix.${DOMAIN}}:443
+        }
+    
+    volumes:
+      - matrix-db:/var/lib/tuwunel
+    
+    # Tuwunel uses many file descriptors
+    ulimits:
+      nofile:
+        soft: 1048567
+        hard: 1048567
+    
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6167/_tuwunel/server_version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - proxy
+    
+    labels:
+      # Main Matrix homeserver (client-server API on 443)
+      - "pangolin.proxy-resources.matrix.name=Matrix Homeserver"
+      - "pangolin.proxy-resources.matrix.protocol=http"
+      - "pangolin.proxy-resources.matrix.full-domain=${MATRIX_SERVER_NAME:-matrix.${DOMAIN}}"
+      - "pangolin.proxy-resources.matrix.targets[0].method=http"
+      - "pangolin.proxy-resources.matrix.targets[0].port=6167"
+      
+      # Federation endpoint (server-server API on 8448)
+      - "pangolin.proxy-resources.matrix-federation.name=Matrix Federation"
+      - "pangolin.proxy-resources.matrix-federation.protocol=http"
+      - "pangolin.proxy-resources.matrix-federation.full-domain=${MATRIX_SERVER_NAME:-matrix.${DOMAIN}}"
+      - "pangolin.proxy-resources.matrix-federation.proxy-port=8448"
+      - "pangolin.proxy-resources.matrix-federation.targets[0].method=http"
+      - "pangolin.proxy-resources.matrix-federation.targets[0].port=6167"
+
+volumes:
+  matrix-db:
+
+networks:
+  proxy:
+    external: true
+
