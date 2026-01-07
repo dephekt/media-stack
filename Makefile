@@ -1,4 +1,4 @@
-DOCKER_CONTEXT=media-containers
+DOCKER_CONTEXT=media-server
 
 # Export all variables from config.env
 include core/config.env
