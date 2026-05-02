@@ -3,6 +3,8 @@ services:
     image: ghcr.io/groenator/iptvboss-docker:3.9.80
     container_name: iptvboss
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8001"
     environment:
       # Auth is handled by Pangolin -> Keycloak
       VNC_PASSWORDLESS: true
