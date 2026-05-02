@@ -8,12 +8,13 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv
+STACKS := core media immich iptv channels
 
 SERVICES_core   := newt auth ldap homepage db update-manager
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
+SERVICES_channels  := channels-dvr
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \

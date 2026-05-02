@@ -1,0 +1,13 @@
+services:
+  channels-dvr:
+    image: fancybits/channels-dvr:latest
+    container_name: channels-dvr
+    network_mode: host
+    restart: on-failure:10
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - /mnt/data/channels-dvr/config:/channels-dvr
+      - /mnt/data/channels-dvr/recordings:/shares/DVR
