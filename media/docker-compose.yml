@@ -17,8 +17,16 @@ services:
     environment:
       - TZ=${TZ}
     volumes:
-      - jellyfin-config:/config
-      - ./cache:/cache
+      - type: bind
+        source: /mnt/data/docker/media/jellyfin-config
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/data/docker/media/jellyfin-cache
+        target: /cache
+        bind:
+          create_host_path: false
       - /media/daniel/streaming:/media
       - ./jellyfin-web-config.json:/jellyfin/jellyfin-web/config.json
     labels:
@@ -139,7 +147,6 @@ services:
       retries: 3
 
 volumes:
-  jellyfin-config:
   radarr-config:
   sonarr-config:
   nzbget-config:
