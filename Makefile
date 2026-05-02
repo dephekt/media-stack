@@ -8,13 +8,12 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv matrix
+STACKS := core media immich iptv
 
 SERVICES_core   := newt auth ldap homepage db update-manager
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
-SERVICES_matrix := homeserver
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -63,7 +62,7 @@ inject-secrets:
 sync-secrets: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env matrix/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml $(REMOTE_HOST):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml $(REMOTE_HOST):~/docker/; \
 		echo "Secrets synced to remote host"; \
 	else \
 		echo "Using local context, no sync needed"; \
