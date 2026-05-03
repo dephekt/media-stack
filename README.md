@@ -61,6 +61,7 @@ I group sets of services into separate Docker compose projects in this repo:
 - iptv: iptvboss services
   - web vnc to access iptvboss app
   - XtremeCodes API for IPTV client playlist and guide data
+- **channels**: **Channels DVR** (`fancybits/channels-dvr`) — host networking; config and recordings under `/mnt/data/channels-dvr/` on the Docker host. Start with **`make channels-up`** or **`make up`** ([`channels/docker-compose.yml`](channels/docker-compose.yml)).
 
 ## How it works (one minute)
 

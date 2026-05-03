@@ -3,7 +3,7 @@ services:
     image: fancybits/channels-dvr:latest
     container_name: channels-dvr
     network_mode: host
-    restart: on-failure:10
+    restart: unless-stopped
     devices:
       - /dev/dri:/dev/dri
     environment:

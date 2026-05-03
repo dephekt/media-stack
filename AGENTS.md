@@ -15,6 +15,7 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Media Stack** (`media/`): Jellyfin (streaming), Radarr (movies), Sonarr (TV), NZBGet (downloads)
 - **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`
 - **IPTVBoss** (`iptv/`): IPTV management and XC server
+- **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host)
 - **Tech Blog** (`tech-blog/`): Hugo static site for dephekt.net
 
 ## Networks
@@ -46,6 +47,8 @@ Read `README.md` first. This is a reference, not a tutorial.
 │  └─ .env                       # Immich-specific config
 ├─ iptv/
 │  └─ docker-compose.yml         # IPTVBoss, XC server
+├─ channels/
+│  └─ docker-compose.yml         # Channels DVR (fancybits/channels-dvr)
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
 ```
