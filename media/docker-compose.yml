@@ -2,7 +2,7 @@ name: media
 
 services:
   jellyfin:
-    image: jellyfin/jellyfin@sha256:6d819e9ab067efcf712993b23455cc100ee5585919bb297ea5a109ac00cb626e
+    image: jellyfin/jellyfin:10.11.8
     container_name: jellyfin
     restart: unless-stopped
     user: 1000:1000
@@ -47,7 +47,7 @@ services:
       start_period: 60s
 
   radarr:
-    image: lscr.io/linuxserver/radarr@sha256:6c0948b42c149e36bb3dbc0b64d36c77b2d3c9dccf1b424c4f72af1e57ba0c21
+    image: docker.io/linuxserver/radarr:6.0.4.10291-ls289
     container_name: radarr
     restart: unless-stopped
     environment:
@@ -75,7 +75,7 @@ services:
       - proxy
 
   sonarr:
-    image: lscr.io/linuxserver/sonarr@sha256:8b9f2138ec50fc9e521960868f79d2ad0d529bc610aef19031ea8ff80b54c5e0
+    image: docker.io/linuxserver/sonarr:4.0.16.2944-ls300
     container_name: sonarr
     restart: unless-stopped
     environment:
@@ -103,7 +103,7 @@ services:
       - proxy
 
   nzbget:
-    image: lscr.io/linuxserver/nzbget@sha256:47fffb665a9f1e87ebc9f9e6cd0baa84c0717bfdeda47d177ed830e6bb7e35d2
+    image: docker.io/linuxserver/nzbget:v25.4-ls225
     container_name: nzbget
     restart: unless-stopped
     environment:
