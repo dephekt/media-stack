@@ -55,7 +55,11 @@ services:
       - PGID=1000
       - TZ=${TZ}
     volumes:
-      - radarr-config:/config
+      - type: bind
+        source: /mnt/data/docker/media/radarr-config
+        target: /config
+        bind:
+          create_host_path: false
       - /media/daniel/streaming:/media
     labels:
       - "pangolin.proxy-resources.radarr.name=Radarr"
@@ -79,7 +83,11 @@ services:
       - PGID=1000
       - TZ=${TZ}
     volumes:
-      - sonarr-config:/config
+      - type: bind
+        source: /mnt/data/docker/media/sonarr-config
+        target: /config
+        bind:
+          create_host_path: false
       - /media/daniel/streaming:/media
     labels:
       - "pangolin.proxy-resources.sonarr.name=Sonarr"
@@ -103,7 +111,16 @@ services:
       - PGID=1000
       - TZ=${TZ}
     volumes:
-      - nzbget-config:/config
+      - type: bind
+        source: /mnt/data/docker/media/nzbget-config
+        target: /config
+        bind:
+          create_host_path: false
+      - type: bind
+        source: /mnt/data/downloads
+        target: /downloads
+        bind:
+          create_host_path: false
       - /media/daniel/streaming:/media
     labels:
       - "pangolin.proxy-resources.nzbget.name=NZBGet"
@@ -147,9 +164,6 @@ services:
       retries: 3
 
 volumes:
-  radarr-config:
-  sonarr-config:
-  nzbget-config:
   seerr-config:
 
 networks:
