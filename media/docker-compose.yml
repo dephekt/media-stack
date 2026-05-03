@@ -75,6 +75,8 @@ services:
       - "wud.watch.repository=linuxserver/radarr"
       # WUD: stable LSIO app version + build (skip testing-* / odd tags)
       - 'wud.tag.include=^\d+\.\d+\.\d+\.\d+-ls\d+$$'
+      # Map w.x.y.z-ls### -> semver + prerelease (upstream z + LS build); WUD compares transformed strings (Docker.ts getTagCandidates)
+      - "wud.tag.transform=^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.$3-$4.$5"
     networks:
       - proxy
 
@@ -104,6 +106,8 @@ services:
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/sonarr"
       - 'wud.tag.include=^\d+\.\d+\.\d+\.\d+-ls\d+$$'
+      # Same transform as radarr (four-part app version + ls build)
+      - "wud.tag.transform=^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.$3-$4.$5"
     networks:
       - proxy
 
@@ -139,6 +143,8 @@ services:
       - "wud.watch.repository=linuxserver/nzbget"
       # NZBGet tags look like v25.4-ls225 (skip testing-version-* / prerelease)
       - 'wud.tag.include=^v\d+\.\d+-ls\d+$$'
+      # vMajor.Minor-ls### -> 26.1.0-0.241 (semver sorts upstream + LS build)
+      - "wud.tag.transform=^v(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.0-0.$3"
     networks:
       - proxy
 
