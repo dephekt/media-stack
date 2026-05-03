@@ -1,6 +1,6 @@
 services:
   newt:
-    image: codeberg.org/stackdrift-images/newt:1.0.2-newt1.8.1
+    image: codeberg.org/stackdrift-images/newt:edge-newt1.9.0
 
     container_name: newt
     restart: unless-stopped
