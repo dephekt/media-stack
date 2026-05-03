@@ -70,6 +70,7 @@ services:
       - "pangolin.proxy-resources.radarr.targets[0].enabled=true"
       - "pangolin.proxy-resources.radarr.targets[0].method=http"
       - "pangolin.proxy-resources.radarr.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.radarr.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/radarr"
@@ -102,6 +103,7 @@ services:
       - "pangolin.proxy-resources.sonarr.targets[0].enabled=true"
       - "pangolin.proxy-resources.sonarr.targets[0].method=http"
       - "pangolin.proxy-resources.sonarr.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.sonarr.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/sonarr"
@@ -138,6 +140,7 @@ services:
       - "pangolin.proxy-resources.nzbget.targets[0].enabled=true"
       - "pangolin.proxy-resources.nzbget.targets[0].method=http"
       - "pangolin.proxy-resources.nzbget.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.nzbget.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/nzbget"
@@ -167,6 +170,7 @@ services:
       - "pangolin.proxy-resources.seerr.targets[0].port=5055"
       - "pangolin.proxy-resources.seerr.auth.sso-enabled=true"
       - "pangolin.proxy-resources.seerr.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.seerr.auth.auto-login-idp=1"
     networks:
       - proxy
     healthcheck:

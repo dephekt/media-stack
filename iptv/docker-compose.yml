@@ -34,6 +34,7 @@ services:
       - "pangolin.proxy-resources.iptvboss.targets[0].port=6901"
       - "pangolin.proxy-resources.iptvboss.auth.sso-enabled=true"
       - "pangolin.proxy-resources.iptvboss.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.iptvboss.auth.auto-login-idp=1"
       - "pangolin.proxy-resources.xtremecodes.name=XC Server"
       - "pangolin.proxy-resources.xtremecodes.protocol=http"
       - "pangolin.proxy-resources.xtremecodes.full-domain=tv.stream.${DOMAIN}"

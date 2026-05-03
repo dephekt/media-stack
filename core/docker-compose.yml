@@ -151,6 +151,7 @@ services:
       # SSO configuration (only applies to paths that pass to auth)
       - "pangolin.proxy-resources.homepage.auth.sso-enabled=true"
       - "pangolin.proxy-resources.homepage.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.homepage.auth.auto-login-idp=1"
     networks:
       - proxy
 
@@ -172,6 +173,7 @@ services:
       - "pangolin.proxy-resources.update-manager.targets[0].method=http"
       - "pangolin.proxy-resources.update-manager.targets[0].port=3000"
       - "pangolin.proxy-resources.update-manager.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.update-manager.auth.auto-login-idp=1"
     networks:
       - proxy
 
