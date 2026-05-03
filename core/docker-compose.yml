@@ -156,7 +156,7 @@ services:
       - proxy
 
   update-manager:
-    image: getwud/wud:latest
+    image: getwud/wud:8.2.2
     container_name: update-manager
     restart: unless-stopped
     volumes:
