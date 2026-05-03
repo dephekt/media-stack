@@ -25,6 +25,10 @@ services:
       - "pangolin.proxy-resources.immich.full-domain=photos.${DOMAIN}"
       - "pangolin.proxy-resources.immich.targets[0].enabled=true"
       - "pangolin.proxy-resources.immich.targets[0].method=http"
+      # WUD: release tags only (skip commit-* sha tags)
+      - 'wud.tag.include=^v\d+\.\d+\.\d+$$'
+      # $$ escapes $ for Compose; WUD receives ${original} (see ~/dev/wud docs/configuration)
+      - 'wud.link.template=https://github.com/immich-app/immich/releases/tag/$${original}'
     networks:
       - proxy
       - immich
@@ -49,6 +53,10 @@ services:
       - .env
     environment:
       - TZ=${TZ}
+    labels:
+      # WUD: match server tags with -openvino suffix only
+      - 'wud.tag.include=^v\d+\.\d+\.\d+-openvino$$'
+      - 'wud.link.template=https://github.com/immich-app/immich/releases/tag/v$${major}.$${minor}.$${patch}'
     networks:
       - immich
     restart: always
@@ -58,6 +66,9 @@ services:
   redis:
     container_name: immich_redis
     image: docker.io/valkey/valkey:8-bookworm
+    labels:
+      # Stay on 8-bookworm until you intentionally move OS / major (skip 9.x trixie suggestions)
+      - 'wud.tag.include=^8-bookworm$$'
     environment:
       - TZ=${TZ}
     networks:
@@ -80,6 +91,9 @@ services:
     volumes:
       # Do not edit the next line. If you want to change the database storage location on your system, edit the value of DB_DATA_LOCATION in the .env file
       - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    labels:
+      # Immich-supported Postgres major only (avoid suggesting PG18 while on 14-vectorchord line)
+      - 'wud.tag.include=^14-vectorchord.*$$'
     networks:
       - immich
     shm_size: 128mb

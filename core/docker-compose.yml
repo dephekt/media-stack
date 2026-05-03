@@ -91,6 +91,9 @@ services:
       start_period: 30s
     volumes:
       - keycloak-mariadb:/var/lib/mysql
+    labels:
+      # WUD: stable MariaDB tags only (skip -rc / beta / testing tracks)
+      - 'wud.tag.exclude=-rc|-beta|-alpha|testing'
     networks:
       - core
     secrets:

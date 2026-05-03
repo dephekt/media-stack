@@ -36,6 +36,8 @@ services:
       - "pangolin.proxy-resources.jellyfin.targets[0].port=8096"
       - "pangolin.proxy-resources.jellyfin.targets[0].enabled=true"
       - "pangolin.proxy-resources.jellyfin.targets[0].method=http"
+      # WUD: semver only (skip nightly e.g. 2026042706-arm64)
+      - 'wud.tag.include=^\d+\.\d+\.\d+$$'
     networks:
       - proxy
       - core
@@ -71,6 +73,8 @@ services:
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/radarr"
+      # WUD: stable LSIO app version + build (skip testing-* / odd tags)
+      - 'wud.tag.include=^\d+\.\d+\.\d+\.\d+-ls\d+$$'
     networks:
       - proxy
 
@@ -99,6 +103,7 @@ services:
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/sonarr"
+      - 'wud.tag.include=^\d+\.\d+\.\d+\.\d+-ls\d+$$'
     networks:
       - proxy
 
@@ -132,6 +137,8 @@ services:
       # WUD: Force Docker Hub registry for LinuxServer images
       - "wud.watch.registry=docker.io"
       - "wud.watch.repository=linuxserver/nzbget"
+      # NZBGet tags look like v25.4-ls225 (skip testing-version-* / prerelease)
+      - 'wud.tag.include=^v\d+\.\d+-ls\d+$$'
     networks:
       - proxy
 

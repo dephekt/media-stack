@@ -40,6 +40,8 @@ services:
       - "pangolin.proxy-resources.xtremecodes.targets[0].enabled=true"
       - "pangolin.proxy-resources.xtremecodes.targets[0].method=http"
       - "pangolin.proxy-resources.xtremecodes.targets[0].port=8001"
+      # WUD: semver tags only (skip cosign .sig / digest-only noise on GHCR)
+      - 'wud.tag.include=^\d+\.\d+\.\d+$$'
     networks:
       - proxy
 
