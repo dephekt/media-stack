@@ -108,7 +108,7 @@ services:
       - proxy
 
   nzbget:
-    image: docker.io/linuxserver/nzbget:v25.4-ls225
+    image: docker.io/linuxserver/nzbget:v26.1-ls241
     container_name: nzbget
     restart: unless-stopped
     environment:
