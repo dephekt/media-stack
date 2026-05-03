@@ -55,8 +55,8 @@ inject-secrets:
 	read_secret "op://Develop/Keycloak DB/password" "core/secrets/DB_PASSWORD.env"; \
 	read_secret "op://Develop/Keycloak Admin/password" "core/secrets/MARIADB_ROOT_PASSWORD"; \
 	read_secret "op://Develop/LDAP/password" "core/secrets/LDAP_ADMIN_PASSWORD"; \
-	read_secret "op://Develop/Pangolin/newt id" "core/secrets/NEWT_ID.env"; \
-	read_secret "op://Develop/Pangolin/newt secret" "core/secrets/NEWT_SECRET.env"
+	read_secret "op://Develop/Self-Hosted Pangolin/newt id" "core/secrets/NEWT_ID.env"; \
+	read_secret "op://Develop/Self-Hosted Pangolin/newt secret" "core/secrets/NEWT_SECRET.env"
 	@echo "Secrets injected successfully!"
 	@echo "Note: core/secrets/* files are git-ignored and should not be committed"
 
