@@ -80,9 +80,14 @@ while true; do
           set_status "$name" unhealthy
           ;;
         "health_status: healthy")
-          [ "$(prev_status "$name")" = "healthy" ] && continue
-          emit info "$name" "$name recovered"
+          prev=$(prev_status "$name")
+          [ "$prev" = "healthy" ] && continue
           set_status "$name" healthy
+          # Only emit "recovered" if there was an actual prior unhealthy
+          # state to recover FROM. A first-ever healthy event (e.g., a
+          # newly-created container or one that just got a healthcheck
+          # added) should silently record without notifying.
+          [ "$prev" = "unhealthy" ] && emit info "$name" "$name recovered"
           ;;
       esac
     done

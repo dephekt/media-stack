@@ -80,6 +80,12 @@ services:
       - "wud.tag.transform=^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.$3-$4.$5"
     networks:
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7878/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   sonarr:
     image: docker.io/linuxserver/sonarr:4.0.17.2952-ls310
@@ -112,6 +118,12 @@ services:
       - "wud.tag.transform=^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.$3-$4.$5"
     networks:
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8989/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   nzbget:
     image: docker.io/linuxserver/nzbget:v26.1-ls241
@@ -150,6 +162,12 @@ services:
       - "wud.tag.transform=^v(\\d+)\\.(\\d+)-ls(\\d+)$ => $1.$2.0-0.$3"
     networks:
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:6789/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   seerr:
     image: ghcr.io/fallenbagel/jellyseerr@sha256:499fbe958fa4a0c93172a231c14898986556bb28bd5cd569a0f41dbf887b04d7

@@ -23,6 +23,12 @@ services:
     networks:
       - monitoring
       - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8000/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   ntfy:
     image: binwiederhier/ntfy:latest
@@ -47,6 +53,12 @@ services:
     networks:
       - monitoring
       - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO/dev/null", "http://localhost/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   events-watcher:
     build: ./events-watcher
