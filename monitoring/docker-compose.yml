@@ -64,6 +64,42 @@ services:
     networks:
       - monitoring
 
+  service-checks:
+    build: ./service-checks
+    container_name: service-checks
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - APPRISE_URL=http://apprise-api:8000/notify/monitoring
+      - LOCAL_XC_URL=http://iptvboss:8001
+      - UPSTREAM_XC_URL=http://prime.tnttv.xyz:826/player_api.php
+      - CHANNEL_FLOOR=200
+      - EPG_MIN_FUTURE_HOURS=6
+      - EXP_WARNING_DAYS=7
+      - STATE_DIR=/state
+      - TZ=${TZ}
+    secrets:
+      - IPTV_UPSTREAM_USER.env
+      - IPTV_UPSTREAM_PASS.env
+      - IPTV_LOCAL_USER.env
+      - IPTV_LOCAL_PASS.env
+    volumes:
+      - ./service-checks/checks:/checks:ro
+      # supercronic reads its crontab from the path given on the command line.
+      # See service-checks/entrypoint.sh — it execs `supercronic /etc/supercronic/crontab`.
+      - ./service-checks/crontab:/etc/supercronic/crontab:ro
+      - monitoring-state:/state
+    networks:
+      - monitoring
+      - proxy
+    healthcheck:
+      test: ["CMD", "pgrep", "supercronic"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   monitoring-state:
 
@@ -71,3 +107,13 @@ networks:
   monitoring:
   proxy:
     external: true
+
+secrets:
+  IPTV_UPSTREAM_USER.env:
+    file: ./secrets/IPTV_UPSTREAM_USER.env
+  IPTV_UPSTREAM_PASS.env:
+    file: ./secrets/IPTV_UPSTREAM_PASS.env
+  IPTV_LOCAL_USER.env:
+    file: ./secrets/IPTV_LOCAL_USER.env
+  IPTV_LOCAL_PASS.env:
+    file: ./secrets/IPTV_LOCAL_PASS.env
