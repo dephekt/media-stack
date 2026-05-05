@@ -15,21 +15,34 @@ which the user subscribes to via the ntfy mobile app.
 Future phases add `events-watcher` (docker-events → apprise) and
 `service-checks` (cron-driven IPTV probes → apprise).
 
-## Apprise config registration
+## Apprise config — template + render flow
 
-`apprise-api` does **not** auto-load YAML files dropped into `/config`. The
-config at `monitoring/apprise/monitoring.yaml` must be POSTed to the
-`/add/monitoring` endpoint to register it under the `monitoring` token.
+ntfy has no OIDC support and the docker repo is public, so committing literal
+topic names into `monitoring.yaml` would let anyone read the repo, subscribe
+to our topics, and see all notifications. Instead:
 
-After **first deploy** or **any edit** to `monitoring.yaml`:
+- `monitoring/apprise/monitoring.yaml.template` is committed (with `{{TOPIC_*}}`
+  placeholders).
+- `monitoring/apprise/monitoring.yaml` is gitignored and rendered from the
+  template by `monitoring/apprise/render-config.sh` at `make inject-secrets`
+  time, using topic values from 1Password (`op://Personal/Ntfy/topic-iptv`
+  and `op://Personal/Ntfy/topic-general`).
+
+After `make inject-secrets`, the rendered config is registered with apprise-api
+via:
 
 ```bash
 make monitoring-config-load
 ```
 
-The registered config persists in apprise-api's bind-mounted `/config` volume
-across container restarts and host reboots, so this only needs to be run on
-setup or on YAML changes — not on every `make monitoring-up`.
+This POSTs the YAML to `apprise-api`'s `/add/monitoring` endpoint, which stores
+it in the bind-mounted `/config` volume. The registered config persists across
+container restarts, so `monitoring-config-load` only needs to run on setup
+or after editing the template / rotating topics.
+
+To rotate topic names: change the values in 1Password, then run
+`make inject-secrets && make monitoring-config-load` and re-subscribe on the
+mobile app.
 
 ## Sending a notification (from inside docker)
 
@@ -40,12 +53,12 @@ docker exec <some-container> curl -X POST \
   http://apprise-api:8000/notify/monitoring
 ```
 
-Tag routing (per `monitoring.yaml`):
+Tag routing (per `monitoring.yaml.template`):
 
-| Tag                          | Lands on topic                       |
-|------------------------------|--------------------------------------|
-| `iptv`                       | `notify-iptv-bfa34c04458e4c3f`       |
-| `critical`, `warning`, `info`| `notify-general-b0501a75ac11fc8b`    |
+| Tag                          | Lands on topic              |
+|------------------------------|-----------------------------|
+| `iptv`                       | `{{TOPIC_IPTV}}` (from 1P)  |
+| `critical`, `warning`, `info`| `{{TOPIC_GENERAL}}` (from 1P) |
 
 The full topic URL for mobile subscription is
 `https://ntfy.dephekt.net/<topic>`.
@@ -56,4 +69,4 @@ A URL with a tag must indent `tag:` **deeper** than the URL key (i.e., as a
 mapping value of the URL entry, not as a sibling). The 4-space-indent form
 parses zero tags; 6-space-indent (or any indent strictly deeper than the
 list's `-`) parses correctly. The Apprise wiki examples under-document this.
-See the comment at the top of `apprise/monitoring.yaml`.
+See the comment at the top of `apprise/monitoring.yaml.template`.

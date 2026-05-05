@@ -24,7 +24,8 @@ REQUIRED_SECRETS := \
 	core/secrets/LDAP_ADMIN_PASSWORD \
 	core/secrets/NEWT_ID.env \
 	core/secrets/NEWT_SECRET.env \
-	monitoring/secrets/ntfy.env
+	monitoring/secrets/ntfy.env \
+	monitoring/apprise/monitoring.yaml
 
 include Makefile.include
 
@@ -71,6 +72,10 @@ inject-secrets:
 	@secret_val=$$(op read "op://Personal/Ntfy/access-token") || { echo "ERROR: failed to read op://Personal/Ntfy/access-token"; exit 1; }; \
 	if [ -z "$$secret_val" ]; then echo "ERROR: empty Ntfy access-token"; exit 1; fi; \
 	printf "NTFY_UPSTREAM_ACCESS_TOKEN=%s\n" "$$secret_val" > monitoring/secrets/ntfy.env
+	@# Render apprise/monitoring.yaml from template + 1Password topic names.
+	@# Topic names stay out of the public repo by living in 1P; the rendered
+	@# file is gitignored. Re-run after rotating topic values in 1Password.
+	@./monitoring/apprise/render-config.sh
 	@echo "Secrets injected successfully!"
 	@echo "Note: */secrets/* files are git-ignored and should not be committed"
 

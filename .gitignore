@@ -6,3 +6,12 @@ keycloak-export/
 core/keycloak-providers/keycloak-scripts.jar
 core/tech-blog/
 immich/.env
+# Rendered from monitoring/apprise/monitoring.yaml.template by render-config.sh
+# at inject-secrets time. Topic names live in 1Password to keep them out of
+# the public repo (ntfy has no OIDC; topic names are the only access control).
+monitoring/apprise/monitoring.yaml
+# apprise-api runtime state (lands here only on the remote host via bind-mount;
+# excluded so a rare local apprise-api run doesn't pollute the working tree).
+monitoring/apprise/d0/
+monitoring/apprise/store/
+monitoring/apprise/.tmp_hc
