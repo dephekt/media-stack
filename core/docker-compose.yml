@@ -56,6 +56,10 @@ services:
       - "pangolin.proxy-resources.auth.full-domain=auth.${DOMAIN}"
       - "pangolin.proxy-resources.auth.targets[0].method=http"
       - "pangolin.proxy-resources.auth.targets[0].port=8080"
+      # Pangolin target health check (probes Keycloak's management /health/ready on port 9000)
+      - "pangolin.proxy-resources.auth.targets[0].healthcheck.hostname=auth"
+      - "pangolin.proxy-resources.auth.targets[0].healthcheck.port=9000"
+      - "pangolin.proxy-resources.auth.targets[0].healthcheck.path=/health/ready"
     secrets:
       - KEYCLOAK_ADMIN_PASSWORD.env
       - KC_DB_PASSWORD.env
@@ -140,6 +144,10 @@ services:
       - "pangolin.proxy-resources.homepage.full-domain=www.${DOMAIN}"
       - "pangolin.proxy-resources.homepage.targets[0].method=http"
       - "pangolin.proxy-resources.homepage.targets[0].port=80"
+      # Pangolin target health check (root path returns 200 on the static Hugo site)
+      - "pangolin.proxy-resources.homepage.targets[0].healthcheck.hostname=homepage"
+      - "pangolin.proxy-resources.homepage.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.homepage.targets[0].healthcheck.path=/"
       # Rule 0: Pass /services to auth (require SSO for this path)
       - "pangolin.proxy-resources.homepage.rules[0].action=pass"
       - "pangolin.proxy-resources.homepage.rules[0].match=path"
@@ -172,6 +180,10 @@ services:
       - "pangolin.proxy-resources.update-manager.full-domain=updates.stream.${DOMAIN}"
       - "pangolin.proxy-resources.update-manager.targets[0].method=http"
       - "pangolin.proxy-resources.update-manager.targets[0].port=3000"
+      # Pangolin target health check (wud's /health endpoint, same as the container healthcheck)
+      - "pangolin.proxy-resources.update-manager.targets[0].healthcheck.hostname=update-manager"
+      - "pangolin.proxy-resources.update-manager.targets[0].healthcheck.port=3000"
+      - "pangolin.proxy-resources.update-manager.targets[0].healthcheck.path=/health"
       - "pangolin.proxy-resources.update-manager.auth.sso-enabled=true"
       - "pangolin.proxy-resources.update-manager.auth.auto-login-idp=1"
     networks:

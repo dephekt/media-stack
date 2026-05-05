@@ -15,6 +15,10 @@ services:
       - "pangolin.proxy-resources.apprise-api.full-domain=apprise.${DOMAIN}"
       - "pangolin.proxy-resources.apprise-api.targets[0].method=http"
       - "pangolin.proxy-resources.apprise-api.targets[0].port=8000"
+      # Pangolin target health check (apprise-api's /status returns "OK")
+      - "pangolin.proxy-resources.apprise-api.targets[0].healthcheck.hostname=apprise-api"
+      - "pangolin.proxy-resources.apprise-api.targets[0].healthcheck.port=8000"
+      - "pangolin.proxy-resources.apprise-api.targets[0].healthcheck.path=/status"
       - "pangolin.proxy-resources.apprise-api.auth.sso-enabled=true"
       - "pangolin.proxy-resources.apprise-api.auth.sso-roles[0]=Member"
       - "pangolin.proxy-resources.apprise-api.auth.auto-login-idp=1"
@@ -48,6 +52,10 @@ services:
       - "pangolin.proxy-resources.ntfy.full-domain=ntfy.${DOMAIN}"
       - "pangolin.proxy-resources.ntfy.targets[0].method=http"
       - "pangolin.proxy-resources.ntfy.targets[0].port=80"
+      # Pangolin target health check (ntfy's /v1/health returns {"healthy":true})
+      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.hostname=ntfy"
+      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.path=/v1/health"
       # WUD: semver tags only
       - 'wud.tag.include=^\d+\.\d+\.\d+$$'
     networks:

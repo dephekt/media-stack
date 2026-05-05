@@ -36,6 +36,10 @@ services:
       - "pangolin.proxy-resources.jellyfin.targets[0].port=8096"
       - "pangolin.proxy-resources.jellyfin.targets[0].enabled=true"
       - "pangolin.proxy-resources.jellyfin.targets[0].method=http"
+      # Pangolin target health check (same /health endpoint as container healthcheck)
+      - "pangolin.proxy-resources.jellyfin.targets[0].healthcheck.hostname=jellyfin"
+      - "pangolin.proxy-resources.jellyfin.targets[0].healthcheck.port=8096"
+      - "pangolin.proxy-resources.jellyfin.targets[0].healthcheck.path=/health"
       # WUD: semver only (skip nightly e.g. 2026042706-arm64)
       - 'wud.tag.include=^\d+\.\d+\.\d+$$'
     networks:
@@ -69,6 +73,10 @@ services:
       - "pangolin.proxy-resources.radarr.full-domain=movies.stream.${DOMAIN}"
       - "pangolin.proxy-resources.radarr.targets[0].enabled=true"
       - "pangolin.proxy-resources.radarr.targets[0].method=http"
+      # Pangolin target health check (radarr's /ping returns {"status":"OK"} unauthenticated)
+      - "pangolin.proxy-resources.radarr.targets[0].healthcheck.hostname=radarr"
+      - "pangolin.proxy-resources.radarr.targets[0].healthcheck.port=7878"
+      - "pangolin.proxy-resources.radarr.targets[0].healthcheck.path=/ping"
       - "pangolin.proxy-resources.radarr.auth.sso-enabled=true"
       - "pangolin.proxy-resources.radarr.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
@@ -108,6 +116,10 @@ services:
       - "pangolin.proxy-resources.sonarr.full-domain=shows.stream.${DOMAIN}"
       - "pangolin.proxy-resources.sonarr.targets[0].enabled=true"
       - "pangolin.proxy-resources.sonarr.targets[0].method=http"
+      # Pangolin target health check (sonarr's /ping returns {"status":"OK"} unauthenticated)
+      - "pangolin.proxy-resources.sonarr.targets[0].healthcheck.hostname=sonarr"
+      - "pangolin.proxy-resources.sonarr.targets[0].healthcheck.port=8989"
+      - "pangolin.proxy-resources.sonarr.targets[0].healthcheck.path=/ping"
       - "pangolin.proxy-resources.sonarr.auth.sso-enabled=true"
       - "pangolin.proxy-resources.sonarr.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
@@ -151,6 +163,10 @@ services:
       - "pangolin.proxy-resources.nzbget.full-domain=grabs.stream.${DOMAIN}"
       - "pangolin.proxy-resources.nzbget.targets[0].enabled=true"
       - "pangolin.proxy-resources.nzbget.targets[0].method=http"
+      # Pangolin target health check (root returns 200 unauthenticated on the linuxserver image)
+      - "pangolin.proxy-resources.nzbget.targets[0].healthcheck.hostname=nzbget"
+      - "pangolin.proxy-resources.nzbget.targets[0].healthcheck.port=6789"
+      - "pangolin.proxy-resources.nzbget.targets[0].healthcheck.path=/"
       - "pangolin.proxy-resources.nzbget.auth.sso-enabled=true"
       - "pangolin.proxy-resources.nzbget.auth.auto-login-idp=1"
       # WUD: Force Docker Hub registry for LinuxServer images
@@ -186,6 +202,10 @@ services:
       - "pangolin.proxy-resources.seerr.targets[0].enabled=true"
       - "pangolin.proxy-resources.seerr.targets[0].method=http"
       - "pangolin.proxy-resources.seerr.targets[0].port=5055"
+      # Pangolin target health check (jellyseerr's status endpoint, same as container HC)
+      - "pangolin.proxy-resources.seerr.targets[0].healthcheck.hostname=seerr"
+      - "pangolin.proxy-resources.seerr.targets[0].healthcheck.port=5055"
+      - "pangolin.proxy-resources.seerr.targets[0].healthcheck.path=/api/v1/status"
       - "pangolin.proxy-resources.seerr.auth.sso-enabled=true"
       - "pangolin.proxy-resources.seerr.auth.sso-roles[0]=Member"
       - "pangolin.proxy-resources.seerr.auth.auto-login-idp=1"

@@ -28,6 +28,10 @@ services:
       - "pangolin.proxy-resources.cnotify.full-domain=cnotify.${DOMAIN}"
       - "pangolin.proxy-resources.cnotify.targets[0].method=http"
       - "pangolin.proxy-resources.cnotify.targets[0].port=8000"
+      # Pangolin target health check (cnotify's /health is unauthenticated)
+      - "pangolin.proxy-resources.cnotify.targets[0].healthcheck.hostname=cnotify"
+      - "pangolin.proxy-resources.cnotify.targets[0].healthcheck.port=8000"
+      - "pangolin.proxy-resources.cnotify.targets[0].healthcheck.path=/health"
       - "pangolin.proxy-resources.cnotify.auth.sso-enabled=true"
       - "pangolin.proxy-resources.cnotify.auth.sso-roles[0]=Member"
       - "pangolin.proxy-resources.cnotify.auth.auto-login-idp=1"

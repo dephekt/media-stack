@@ -25,6 +25,10 @@ services:
       - "pangolin.proxy-resources.immich.full-domain=photos.${DOMAIN}"
       - "pangolin.proxy-resources.immich.targets[0].enabled=true"
       - "pangolin.proxy-resources.immich.targets[0].method=http"
+      # Pangolin target health check (immich's unauthenticated ping endpoint)
+      - "pangolin.proxy-resources.immich.targets[0].healthcheck.hostname=immich_server"
+      - "pangolin.proxy-resources.immich.targets[0].healthcheck.port=2283"
+      - "pangolin.proxy-resources.immich.targets[0].healthcheck.path=/api/server/ping"
       # WUD: release tags only (skip commit-* sha tags)
       - 'wud.tag.include=^v\d+\.\d+\.\d+$$'
       # $$ escapes $ for Compose; WUD receives ${original} (see ~/dev/wud docs/configuration)
