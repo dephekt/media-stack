@@ -6,7 +6,8 @@
 # Daily renewal warning at 09:00 local
 0 9 * * *   python3 /checks/iptv-renewal-warn.py    >> /proc/1/fd/1 2>&1
 
-# Every 5 minutes: probe each public dephekt.net URL from outside the docker
+# Every minute: probe each public dephekt.net URL from outside the docker
 # network. Catches proxy/tunnel/edge breakage that container healthchecks and
 # newt's per-target healthchecks miss (both probe inside the docker network).
-*/5 * * * * python3 /checks/public-availability.py >> /proc/1/fd/1 2>&1
+# 14 domains x 1 probe/min = ~0.23 req/sec; trivial against self-hosted infra.
+* * * * *   python3 /checks/public-availability.py >> /proc/1/fd/1 2>&1
