@@ -12,8 +12,10 @@ TOPIC_IPTV="$(op read 'op://Personal/Ntfy/topic-iptv')" \
   || { echo "ERROR: failed to read op://Personal/Ntfy/topic-iptv" >&2; exit 1; }
 TOPIC_GENERAL="$(op read 'op://Personal/Ntfy/topic-general')" \
   || { echo "ERROR: failed to read op://Personal/Ntfy/topic-general" >&2; exit 1; }
+TOPIC_CAM="$(op read 'op://Personal/Ntfy/topic-cam')" \
+  || { echo "ERROR: failed to read op://Personal/Ntfy/topic-cam" >&2; exit 1; }
 
-if [ -z "$TOPIC_IPTV" ] || [ -z "$TOPIC_GENERAL" ]; then
+if [ -z "$TOPIC_IPTV" ] || [ -z "$TOPIC_GENERAL" ] || [ -z "$TOPIC_CAM" ]; then
   echo "ERROR: empty topic value from 1Password" >&2
   exit 1
 fi
@@ -21,6 +23,7 @@ fi
 sed \
   -e "s|{{TOPIC_IPTV}}|$TOPIC_IPTV|g" \
   -e "s|{{TOPIC_GENERAL}}|$TOPIC_GENERAL|g" \
+  -e "s|{{TOPIC_CAM}}|$TOPIC_CAM|g" \
   "$TEMPLATE" > "$OUT"
 
 echo "Rendered $OUT (apprise config) from template + 1Password topics"
