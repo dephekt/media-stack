@@ -1,0 +1,57 @@
+services:
+  cnotify:
+    image: codeberg.org/stackdrift-images/cnotify:0.1.0-python3.12-slim
+    container_name: cnotify
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - STATE_PATH=/app/data/state.json
+      - APPRISE_URL=http://apprise-api:8000/notify/monitoring
+      - APPRISE_TAGS=cam
+      - TZ=${TZ}
+    volumes:
+      - ./data:/app/data
+    secrets:
+      - BASIC_AUTH_USER.env
+      - BASIC_AUTH_PASSWORD.env
+      - BASE_URL.env
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "pangolin.proxy-resources.cnotify.name=Cam Notify"
+      - "pangolin.proxy-resources.cnotify.protocol=http"
+      - "pangolin.proxy-resources.cnotify.full-domain=cnotify.${DOMAIN}"
+      - "pangolin.proxy-resources.cnotify.targets[0].method=http"
+      - "pangolin.proxy-resources.cnotify.targets[0].port=8000"
+      - "pangolin.proxy-resources.cnotify.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.cnotify.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.cnotify.auth.auto-login-idp=1"
+      # WUD: match the python-suffixed tag pattern produced by ci-templates
+      # e.g. "0.1.0-python3.12-slim". The plain semver regex used by other
+      # services in the stack would skip cnotify entirely.
+      - 'wud.tag.include=^\d+\.\d+\.\d+-python\d+\.\d+(-slim)?$$'
+    entrypoint: ["/usr/local/bin/secrets2env.sh", "uvicorn"]
+    command: ["cam_notify.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    networks:
+      - proxy
+      - monitoring
+
+secrets:
+  BASIC_AUTH_USER.env:
+    file: ./secrets/BASIC_AUTH_USER.env
+  BASIC_AUTH_PASSWORD.env:
+    file: ./secrets/BASIC_AUTH_PASSWORD.env
+  BASE_URL.env:
+    file: ./secrets/BASE_URL.env
+
+networks:
+  proxy:
+    external: true
+  monitoring:
+    external: true
+    name: monitoring_monitoring

@@ -15,5 +15,6 @@ monitoring/apprise/monitoring.yaml
 monitoring/apprise/d0/
 monitoring/apprise/store/
 monitoring/apprise/.tmp_hc
+cnotify/data/state.json
 
 __pycache__/
