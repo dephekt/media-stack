@@ -48,6 +48,25 @@ services:
       - monitoring
       - proxy
 
+  events-watcher:
+    build: ./events-watcher
+    container_name: events-watcher
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - APPRISE_URL=http://apprise-api:8000/notify/monitoring
+      - STATE_DIR=/state
+      - TZ=${TZ}
+    volumes:
+      - /run/docker.sock:/var/run/docker.sock:ro
+      - monitoring-state:/state
+    networks:
+      - monitoring
+
+volumes:
+  monitoring-state:
+
 networks:
   monitoring:
   proxy:

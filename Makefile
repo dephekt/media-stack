@@ -15,7 +15,7 @@ SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
-SERVICES_monitoring := apprise-api ntfy
+SERVICES_monitoring := apprise-api ntfy events-watcher
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -77,7 +77,7 @@ inject-secrets:
 sync-secrets: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy $(REMOTE_HOST):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy monitoring/events-watcher $(REMOTE_HOST):~/docker/; \
 		echo "Secrets synced to remote host"; \
 	else \
 		echo "Using local context, no sync needed"; \
