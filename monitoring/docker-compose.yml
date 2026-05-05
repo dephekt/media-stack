@@ -76,6 +76,10 @@ services:
       - UPSTREAM_XC_URL=http://prime.tnttv.xyz:826/player_api.php
       - CHANNEL_FLOOR=200
       - EPG_MIN_FUTURE_HOURS=6
+      - EPG_CANARY_CHANNELS=ABCWICS.us,HallmarkChannel.us,HallmarkFamily.us,CBSKMOV.us,NBCWAND.us,skyhits.uk
+      - EPG_CANARY_MIN_FUTURE_PROG=6
+      - EPG_CANARY_MIN_FUTURE_HOURS=12
+      - EPG_CANARY_MIN_UNIQUE_TITLES=3
       - EXP_WARNING_DAYS=7
       - STATE_DIR=/state
       - TZ=${TZ}

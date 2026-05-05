@@ -2,5 +2,6 @@
 17 * * * *  python3 /checks/iptv-auth.py            >> /proc/1/fd/1 2>&1
 23 * * * *  python3 /checks/iptv-channel-count.py   >> /proc/1/fd/1 2>&1
 29 * * * *  python3 /checks/iptv-epg-freshness.py   >> /proc/1/fd/1 2>&1
+35 * * * *  python3 /checks/iptv-canary-epg.py     >> /proc/1/fd/1 2>&1
 # Daily renewal warning at 09:00 local
 0 9 * * *   python3 /checks/iptv-renewal-warn.py    >> /proc/1/fd/1 2>&1
