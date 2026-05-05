@@ -23,7 +23,8 @@ REQUIRED_SECRETS := \
 	core/secrets/MARIADB_ROOT_PASSWORD \
 	core/secrets/LDAP_ADMIN_PASSWORD \
 	core/secrets/NEWT_ID.env \
-	core/secrets/NEWT_SECRET.env
+	core/secrets/NEWT_SECRET.env \
+	monitoring/secrets/ntfy.env
 
 include Makefile.include
 
@@ -57,7 +58,7 @@ monitoring-config-load:
 
 inject-secrets:
 	@echo "Injecting secrets from 1Password..."
-	@mkdir -p core/secrets
+	@mkdir -p core/secrets monitoring/secrets
 	@$(READ_SECRET_FN); \
 	read_secret "op://Develop/Keycloak Admin/password" "core/secrets/KEYCLOAK_ADMIN_PASSWORD.env"; \
 	read_secret "op://Develop/Keycloak DB/password" "core/secrets/DB_PASSWORD.env"; \
@@ -65,13 +66,18 @@ inject-secrets:
 	read_secret "op://Develop/LDAP/password" "core/secrets/LDAP_ADMIN_PASSWORD"; \
 	read_secret "op://Develop/Self-Hosted Pangolin/newt id" "core/secrets/NEWT_ID.env"; \
 	read_secret "op://Develop/Self-Hosted Pangolin/newt secret" "core/secrets/NEWT_SECRET.env"
+	@# ntfy upstream-access-token: written as KEY=VALUE so docker compose
+	@# env_file picks it up directly (ntfy doesn't support _FILE env vars).
+	@secret_val=$$(op read "op://Personal/Ntfy/access-token") || { echo "ERROR: failed to read op://Personal/Ntfy/access-token"; exit 1; }; \
+	if [ -z "$$secret_val" ]; then echo "ERROR: empty Ntfy access-token"; exit 1; fi; \
+	printf "NTFY_UPSTREAM_ACCESS_TOKEN=%s\n" "$$secret_val" > monitoring/secrets/ntfy.env
 	@echo "Secrets injected successfully!"
-	@echo "Note: core/secrets/* files are git-ignored and should not be committed"
+	@echo "Note: */secrets/* files are git-ignored and should not be committed"
 
 sync-secrets: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/apprise monitoring/ntfy $(REMOTE_HOST):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy $(REMOTE_HOST):~/docker/; \
 		echo "Secrets synced to remote host"; \
 	else \
 		echo "Using local context, no sync needed"; \
