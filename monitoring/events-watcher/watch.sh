@@ -8,7 +8,10 @@ mkdir -p "$STATE_DIR"
 
 emit() {
   # emit <tag> <name> <title> [<body>]
+  # apprise-api rejects empty bodies with HTTP 400, so substitute a
+  # placeholder when the caller passes nothing (typical for recovery).
   tag="$1"; name="$2"; title="$3"; body="${4:-}"
+  [ -z "$body" ] && body="(no body)"
   curl -fsS -X POST -H "Content-Type: application/json" \
     "$APPRISE_URL?tag=$tag" \
     -d "$(jq -nc --arg t "$title" --arg b "$body" '{title:$t, body:$b}')" \
