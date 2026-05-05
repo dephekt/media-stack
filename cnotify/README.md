@@ -1,10 +1,10 @@
 # cnotify
 
-cam-availability poller. Polls a configured listing page and sends notifications via `apprise-api` when a watched entry's availability state transitions.
+Availability poller. Polls a configured listing page on an interval (default 60 s) and sends notifications via `apprise-api` whenever a watched entry's availability state transitions.
 
 ## Notification routing
 
-Notifications are posted to `apprise-api:8000/notify?tag=cam`, which fans out to the `notify-cam-<rand>` ntfy topic defined in `monitoring/apprise/monitoring.yaml`.
+Notifications are posted to `apprise-api:8000/notify/monitoring?tag=cam`, which fans out to the `notify-cam-<rand>` ntfy topic defined in `monitoring/apprise/monitoring.yaml.template`.
 
 ## Registry authentication
 
