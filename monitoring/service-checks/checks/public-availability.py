@@ -76,8 +76,13 @@ def main():
         print(f"[public-availability] {host:<30} {status}")
 
         if not is_up and prev_up:
+            # Tag-only public-infra (no critical/info), so this lands on a
+            # dedicated topic separate from container-side alerts. A
+            # public-infra alert without a corresponding general alert means
+            # the container is fine internally and the proxy/edge layer is
+            # the failure surface.
             notify(
-                tags=["critical", "infra"],
+                tags=["public-infra"],
                 title=f"Public URL down: {host}",
                 body=(
                     f"https://{host}/ probe from service-checks failed "
@@ -90,7 +95,7 @@ def main():
             )
         elif is_up and not prev_up:
             notify(
-                tags=["info", "infra"],
+                tags=["public-infra"],
                 title=f"Public URL recovered: {host}",
                 body=f"https://{host}/ probe succeeding again.",
             )
