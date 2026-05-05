@@ -18,3 +18,14 @@ monitoring/apprise/.tmp_hc
 cnotify/data/state.json
 
 __pycache__/
+
+# Pangolin: rendered from config.yml.template by render-config.sh
+pangolin/config/config.yml
+# Pangolin runtime state (lives only on the edge host via bind-mounts)
+pangolin/config/db/
+pangolin/config/letsencrypt/
+pangolin/config/key
+pangolin/config/GeoLite2-Country.mmdb
+pangolin/config/logs/
+pangolin/config/traefik/logs/
+pangolin/config/openapi.yaml

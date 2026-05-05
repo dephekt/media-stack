@@ -1,14 +1,24 @@
 DOCKER_CONTEXT=media-server
 
+# Per-stack context overrides. STACK_CONTEXT helper in Makefile.include picks these up.
+CONTEXT_pangolin=pangolin-edge
+
+# Per-host helpers for sync-secrets split (one rsync per remote).
+CONTEXT_HOST_media=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
+REMOTE_HOST_media=$(shell echo $(CONTEXT_HOST_media) | sed 's|^ssh://||')
+CONTEXT_HOST_pangolin=$(shell docker context inspect $(CONTEXT_pangolin) -f '{{.Endpoints.docker.Host}}')
+REMOTE_HOST_pangolin=$(shell echo $(CONTEXT_HOST_pangolin) | sed 's|^ssh://||')
+
 # Export all variables from config.env
 include core/config.env
 export
 
 # Resolve docker host from context (for rsync of secrets)
+# Kept for backward compat with any targets that reference REMOTE_HOST directly.
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring cnotify
+STACKS := core media immich iptv channels monitoring cnotify pangolin
 
 SERVICES_core   := newt auth ldap homepage db update-manager
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -17,6 +27,7 @@ SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api ntfy events-watcher service-checks
 SERVICES_cnotify := cnotify
+SERVICES_pangolin := pangolin gerbil traefik
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -33,7 +44,9 @@ REQUIRED_SECRETS := \
 	monitoring/secrets/IPTV_LOCAL_PASS.env \
 	cnotify/secrets/BASIC_AUTH_USER.env \
 	cnotify/secrets/BASIC_AUTH_PASSWORD.env \
-	cnotify/secrets/BASE_URL.env
+	cnotify/secrets/BASE_URL.env \
+	pangolin/secrets/pangolin.env \
+	pangolin/config/config.yml
 
 include Makefile.include
 
@@ -56,7 +69,7 @@ read_secret() { \
 }
 endef
 
-.PHONY: inject-secrets check-secrets sync-secrets build-script-providers monitoring-config-load
+.PHONY: inject-secrets check-secrets sync-secrets sync-secrets-media sync-secrets-pangolin build-script-providers monitoring-config-load
 
 # Register monitoring/apprise/monitoring.yaml with apprise-api under the
 # 'monitoring' token. Idempotent -- re-run after editing the YAML or after
@@ -91,17 +104,37 @@ inject-secrets:
 	@# Topic names stay out of the public repo by living in 1P; the rendered
 	@# file is gitignored. Re-run after rotating topic values in 1Password.
 	@./monitoring/apprise/render-config.sh
+	@mkdir -p pangolin/secrets pangolin/config
+	@# Pangolin Cloudflare DNS token: KEY=VALUE form for compose env_file
+	@secret_val=$$(op read "op://Develop/Cloudflared API/credential") || { echo "ERROR: failed to read op://Develop/Cloudflared API/credential"; exit 1; }; \
+	if [ -z "$$secret_val" ]; then echo "ERROR: empty Cloudflare token"; exit 1; fi; \
+	printf "CLOUDFLARE_DNS_API_TOKEN=%s\n" "$$secret_val" > pangolin/secrets/pangolin.env
+	@# Render pangolin/config/config.yml from template + 1Password
+	@./pangolin/config/render-config.sh
 	@echo "Secrets injected successfully!"
 	@echo "Note: */secrets/* files are git-ignored and should not be committed"
 
-sync-secrets: check-secrets
+sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
-		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy monitoring/events-watcher monitoring/service-checks cnotify/secrets cnotify/config.env $(REMOTE_HOST):~/docker/; \
-		echo "Secrets synced to remote host"; \
+		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy monitoring/events-watcher monitoring/service-checks cnotify/secrets cnotify/config.env $(REMOTE_HOST_media):~/docker/; \
+		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \
 	fi
+
+sync-secrets-pangolin: check-secrets
+	@echo "Syncing to $(REMOTE_HOST_pangolin)"; \
+	cd pangolin && rsync -avz --relative \
+	  docker-compose.yml \
+	  secrets/pangolin.env \
+	  config/config.yml \
+	  config/traefik/traefik_config.yml \
+	  config/traefik/dynamic_config.yml \
+	  $(REMOTE_HOST_pangolin):/opt/pangolin/
+
+sync-secrets: sync-secrets-media sync-secrets-pangolin
+	@echo "All secrets synced"
 
 # Core specific build dependency for keycloak providers
 core-up:

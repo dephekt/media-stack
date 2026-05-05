@@ -1,6 +1,9 @@
-# Helper to generate the docker command
-# Args: $(1) = Stack Name
-STACK_CMD = docker compose -p $(1) -f $(1)/docker-compose.yml
+# Per-stack context lookup; falls back to DOCKER_CONTEXT (default for most stacks).
+# Set CONTEXT_<stack> in Makefile to override per-stack.
+STACK_CONTEXT = $(or $(CONTEXT_$(1)),$(DOCKER_CONTEXT))
+
+# STACK_CMD passes --context explicitly so per-stack overrides take effect.
+STACK_CMD = docker --context $(call STACK_CONTEXT,$(1)) compose -p $(1) -f $(1)/docker-compose.yml
 
 # COMMON_RULES: Generates up, restart, logs
 # Args:
@@ -49,9 +52,16 @@ $(1)-start:
 	$(call STACK_CMD,$(2)) start $(1)
 endef
 
-# Generate targets for all stacks and services defined in STACKS/SERVICES_* lists,
+# Generate targets for all stacks and services defined in STACKS/SERVICES_* lists.
+# Skip SERVICE_RULES for any service whose name is the same as its containing
+# stack (e.g. pangolin/pangolin or cnotify/cnotify) -- in that case the STACK
+# rule already covers <name>-up/-restart/-logs and we'd otherwise get make
+# "overriding recipe" warnings. The lost per-service shortcut for those cases
+# is acceptable: `<stack>-up` is whole-stack and matches user expectation;
+# single-service operations on the matching service can be done with
+# `docker compose up -d <svc>` directly.
+$(foreach stack,$(STACKS),$(foreach svc,$(filter-out $(stack),$(SERVICES_$(stack))),$(eval $(call SERVICE_RULES,$(svc),$(stack),--build))))
 $(foreach stack,$(STACKS),$(eval $(call STACK_RULES,$(stack),--build)))
-$(foreach stack,$(STACKS),$(foreach svc,$(SERVICES_$(stack)),$(eval $(call SERVICE_RULES,$(svc),$(stack),--build))))
 
 # Ensure stack-up targets depend on secrets checks/syncing.
 $(foreach stack,$(STACKS),$(eval $(stack)-up: check-secrets sync-secrets))

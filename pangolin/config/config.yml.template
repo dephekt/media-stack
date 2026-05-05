@@ -1,0 +1,39 @@
+# To see all available options, please visit the docs:
+# https://docs.pangolin.net/
+
+gerbil:
+    start_port: 51820
+    base_endpoint: "pangolin.dephekt.net"
+
+app:
+    dashboard_url: "https://pangolin.dephekt.net"
+    log_level: "info"
+    telemetry:
+        anonymous_usage: true
+
+domains:
+    domain1:
+        base_domain: "dephekt.net"
+
+server:
+    secret: "{{SERVER_SECRET}}"
+    cors:
+        origins: ["https://pangolin.dephekt.net"]
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        allowed_headers: ["X-CSRF-Token", "Content-Type"]
+        credentials: false
+    maxmind_db_path: "./config/GeoLite2-Country.mmdb"
+
+email:
+    smtp_host: "email-smtp.us-east-2.amazonaws.com"
+    smtp_port: 587
+    smtp_user: "{{SMTP_USER}}"
+    smtp_pass: "{{SMTP_PASS}}"
+    no_reply: "no-reply@dephekt.net"
+
+flags:
+    require_email_verification: true
+    disable_signup_without_invite: true
+    disable_user_create_org: false
+    allow_raw_resources: true
+    enable_integration_api: true
