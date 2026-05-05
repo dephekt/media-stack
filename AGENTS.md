@@ -4,19 +4,24 @@ Read `README.md` first. This is a reference, not a tutorial.
 
 ## Components at a glance
 ### Core Infrastructure
-- **Pangolin (cloud)**: Management platform for monitoring self-hosted nodes. Handles health checks, failover, and resource configuration
-- **Pangolin self-hosted nodes**: 4 geographically distributed VPSes (Toronto, Singapore, France, Seattle) providing edge ingress and TLS termination. Traffic flows via WireGuard tunnels between edge nodes and Newt
-- **Newt**: Local agent on this infrastructure. Autodiscovers Docker containers via labels (Pangolin Blueprints) and registers proxy resources with Pangolin
-- **Keycloak (`auth`)**: Identity provider; OIDC/SAML, user federation
-- **OpenLDAP (`ldap`)**: Directory service; federated with Keycloak
-- **MariaDB (`db`)**: Database for Keycloak
+- **Pangolin (self-hosted)**: Reverse-proxy + control plane running on a separate edge VPS at `pangolin.dephekt.net`. Managed in this repo under `pangolin/` and deployed via the `pangolin-edge` Docker context. Bundles Traefik (TLS termination) and Gerbil (WireGuard tunnel endpoint). EE license enabled.
+- **Newt**: Local agent in this stack on the `containers` host. Autodiscovers Docker containers via labels (Pangolin Blueprints), registers proxy resources with Pangolin, and runs per-target healthchecks for the resources it proxies.
+- **Keycloak (`auth`)**: Identity provider; OIDC/SAML, user federation.
+- **OpenLDAP (`ldap`)**: Directory service; federated with Keycloak.
+- **MariaDB (`db`)**: Database for Keycloak.
 
 ### Applications
-- **Media Stack** (`media/`): Jellyfin (streaming), Radarr (movies), Sonarr (TV), NZBGet (downloads)
-- **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`
-- **IPTVBoss** (`iptv/`): IPTV management and XC server
-- **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host)
-- **Tech Blog** (`tech-blog/`): Hugo static site for dephekt.net
+- **Media Stack** (`media/`): Jellyfin (streaming), Radarr (movies), Sonarr (TV), NZBGet (downloads), Jellyseerr (requests).
+- **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`.
+- **IPTVBoss** (`iptv/`): IPTV management and XC server.
+- **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host).
+- **cnotify** (`cnotify/`): Small FastAPI availability poller; emits `tag=cam` notifications via apprise-api on watched-entry transitions.
+
+### Monitoring & alerting (`monitoring/`)
+- **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to ntfy topics per `monitoring/apprise/monitoring.yaml.template`.
+- **ntfy**: Self-hosted push-notification server with iOS instant push via the upstream ntfy.sh APNs gateway.
+- **events-watcher**: Tails `docker events --filter event=health_status` and turns container healthcheck transitions into `tag=critical`/`tag=info` notifications.
+- **service-checks**: supercronic-driven container running probe scripts under `service-checks/checks/`. Runs IPTV-specific probes (auth, channel-count, EPG freshness, EPG canary, renewal warning) and an end-to-end public-URL availability check (`tag=public-infra`) that probes each public dephekt.net subdomain over HTTPS to catch proxy/edge breakage that neither container healthchecks nor Newt's per-target healthchecks would see.
 
 ## Networks
 - **`proxy`** (external, shared): All frontend containers that Pangolin proxies to
@@ -29,79 +34,61 @@ Read `README.md` first. This is a reference, not a tutorial.
 ./
 ├─ README.md
 ├─ AGENTS.md                     # This file
-├─ Makefile                      # Project orchestration
-├─ core/
-│  ├─ docker-compose.yml         # Newt, Keycloak, MariaDB, OpenLDAP
-│  ├─ config.env                 # Non-secret config (DOMAIN, DB settings, etc.)
-│  └─ secrets/                   # One-file-per-secret (git-ignored)
-│     ├─ KEYCLOAK_ADMIN_PASSWORD.env
-│     ├─ DB_PASSWORD.env
-│     ├─ MARIADB_ROOT_PASSWORD
-│     ├─ LDAP_ADMIN_PASSWORD
-│     ├─ NEWT_ID.env
-│     └─ NEWT_SECRET.env
-├─ media/
-│  └─ docker-compose.yml         # Jellyfin, Radarr, Sonarr, NZBGet
-├─ immich/
-│  ├─ docker-compose.yml         # Immich services
-│  └─ .env                       # Immich-specific config
-├─ iptv/
-│  └─ docker-compose.yml         # IPTVBoss, XC server
-├─ channels/
-│  └─ docker-compose.yml         # Channels DVR (fancybits/channels-dvr)
+├─ Makefile                      # Per-stack orchestration entry points
+├─ Makefile.include              # Shared rule generators (STACK_RULES, SERVICE_RULES, STACK_CONTEXT helper)
+├─ core/                         # newt, auth (keycloak), ldap, db (mariadb), homepage, update-manager
+├─ media/                        # jellyfin, radarr, sonarr, nzbget, seerr
+├─ immich/                       # immich-server, machine-learning, postgres, redis
+├─ iptv/                         # iptvboss (XC server + noVNC)
+├─ channels/                     # channels-dvr (host network)
+├─ monitoring/                   # apprise-api, ntfy, events-watcher, service-checks
+├─ cnotify/                      # availability poller; deploys to media-server
+├─ pangolin/                     # pangolin server + gerbil + traefik; deploys to pangolin-edge context
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
 ```
 
+Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional `secrets/` (gitignored), and any per-stack subdirectories (`apprise/`, `ntfy/`, `events-watcher/`, `service-checks/`, `config/traefik/`, etc.). Rendered config files (e.g. `monitoring/apprise/monitoring.yaml`, `pangolin/config/config.yml`) are gitignored and reproduced from `*.template` siblings via per-stack `render-config.sh` scripts at `make inject-secrets` time.
+
 ## Environment & secrets
-- **Core config** (`core/config.env`): `DOMAIN`, `KC_DB`, `KC_DB_USERNAME`, `KC_DB_URL`, `LDAP_BASE_DN`, `PANGOLIN_ENDPOINT`
-- **Core secrets** (`core/secrets/`): `KEYCLOAK_ADMIN_PASSWORD.env`, `DB_PASSWORD.env`, `MARIADB_ROOT_PASSWORD`, `LDAP_ADMIN_PASSWORD`, `NEWT_ID.env`, `NEWT_SECRET.env`
-- Generate secrets: `make inject-secrets` (uses 1Password CLI)
-- Secrets are `.env` files containing single values; sourced into containers via Docker Compose secrets
+- **Core config** (`core/config.env`): `DOMAIN`, `KC_DB`, `KC_DB_USERNAME`, `KC_DB_URL`, `LDAP_BASE_DN`, `PANGOLIN_ENDPOINT`. Loaded by every stack via the Makefile's `include core/config.env`/`export`.
+- **Per-stack secrets** live under each stack's `secrets/` directory (git-ignored by `**/secrets/`). All are written by `make inject-secrets` from 1Password.
+- Single-value `.env` files (e.g. `core/secrets/NEWT_ID.env`) get exposed as Docker Compose secrets and read at runtime via the `secrets2env.sh` shim baked into the stackdrift custom images. This shim reads `/run/secrets/<NAME>.env` and exports `<NAME>` as a regular env var before exec'ing the service.
+- A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/ntfy.env`, `pangolin/secrets/pangolin.env`, `cnotify/secrets/*.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (ntfy, traefik) or for our own custom images that just want plain env.
+- Secret rotation: change values in 1Password, run `make inject-secrets` (re-renders any templated configs too), then `make sync-secrets` to ship to the remote and `make <stack>-up` to recreate any service whose env changed.
 
 ## Makefile
-**Always use the Makefile** - Do not call `docker compose` directly. The Makefile ensures consistent project names and proper context for all operations.
+**Always use the Makefile** — never call `docker compose` directly. Direct invocations bypass the env exports the Makefile provides; in particular `${DOMAIN}` would render empty in Pangolin labels and break resource registration. Every deploy goes through `make`.
 
-### Project Structure
-Each project has explicit variables for consistent naming:
-- `CORE_PROJECT=core` - Newt, Keycloak, MariaDB, OpenLDAP
-- `MEDIA_PROJECT=media` - Jellyfin, Radarr, Sonarr, NZBGet  
-- `IMMICH_PROJECT=immich` - Immich services
-- `IPTV_PROJECT=iptv` - IPTVBoss, XC server
+### How targets are generated
+- `STACKS := core media immich iptv channels monitoring cnotify pangolin` — list of every stack.
+- `SERVICES_<stack> := svc1 svc2 ...` — per-stack service list, used to auto-generate per-service targets.
+- `Makefile.include` evaluates `STACK_RULES` and `SERVICE_RULES` over those lists to emit `<stack>-up/-down/-restart/-logs` and `<svc>-up/-restart/-logs/-stop/-start` for every name. When a service name matches its stack name (e.g. `cnotify`/`cnotify`, `pangolin`/`pangolin`), the SERVICE_RULES generation is skipped for that service so `<name>-up` resolves to the whole-stack rule, not just one service.
+- Per-stack Docker context: `STACK_CONTEXT(stack) = $(or $(CONTEXT_$(stack)),$(DOCKER_CONTEXT))`. Default is `media-server`; override per stack via `CONTEXT_<stack>=<context>`. Currently `CONTEXT_pangolin=pangolin-edge` routes pangolin's deploys to the edge VPS while every other stack lands on `media-server`.
 
-All `docker compose` commands use explicit `-p $(PROJECT_NAME)` and `--project-directory` flags.
+### Sync split
+`sync-secrets-media` rsyncs all media-server-bound stack files to `~/docker/` on `containers`. `sync-secrets-pangolin` rsyncs the pangolin stack to `/opt/pangolin/` on the edge VPS. Bare `sync-secrets` runs both. Neither passes `--delete`; on-host runtime state (LE certs, sqlite, gerbil keys, cnotify state) is preserved.
 
-### Key Patterns
-- **Secrets management**: `make inject-secrets` (from 1Password), `make check-secrets` (validation)
-- **Project targets**: `<project>-up`, `<project>-down`, `<project>-restart`, `logs-<project>`
-- **Service-specific targets**: `auth-up`, `auth-restart`, `ldap-restart`, etc. for granular control
-- **Remote deployment**: `make sync-secrets` uses rsync to copy secrets/config to remote Docker context
-
-### Common Commands
+### Common commands
 ```bash
-make inject-secrets          # Generate all secrets from 1Password
-make up                      # Start core stack (checks secrets first)
-make media-up                # Start media stack
-make auth-restart            # Restart Keycloak
-make logs-core               # View core logs
+make inject-secrets         # Pull all secrets from 1P; render template configs
+make sync-secrets           # rsync to both remote hosts
+make up                     # Start every stack on its respective context
+make <stack>-up             # Bring up one stack (e.g. core-up, monitoring-up)
+make <svc>-restart          # Restart one service (e.g. auth-restart, ntfy-restart)
+make logs-<stack>           # Follow logs for one stack
 ```
 
-Run `make` without arguments to see all available targets.
+Run `make` with no args to see every generated target.
 
 ## Deployment
-### Local deployment
+The `containers` Docker context (alias: `media-server`) is configured at `ssh://daniel@containers`. The `pangolin-edge` context is `ssh://root@pangolin.dephekt.net`. Both are SSH-based; Docker CLI on this local box forwards commands to the remote daemon. Bind-mount paths resolve on the remote host, so absolute paths in compose files refer to the remote filesystem.
+
 ```bash
-make inject-secrets && make up
+make inject-secrets && make sync-secrets && make up
 ```
 
-### Remote deployment (SSH context)
-```bash
-docker context create remote --docker "host=ssh://user@host"
-docker context use remote
-make up
-```
-
-**Note**: Bind-mount host paths resolve on the remote host. Ensure required files/dirs exist there. Named volumes are managed by the remote engine.
+For pangolin specifically, the compose uses absolute `/opt/pangolin/...` bind paths because relative `./config` would resolve on the local box (where the path doesn't exist) and the remote daemon would auto-create empty directories.
 
 ## Pangolin quick refs
 ### Blueprints
@@ -138,9 +125,18 @@ labels:
 ```yaml
 - "pangolin.proxy-resources.<id>.auth.sso-enabled=true"
 - "pangolin.proxy-resources.<id>.auth.sso-roles[0]=Member"
+- "pangolin.proxy-resources.<id>.auth.auto-login-idp=1"  # straight-to-Keycloak redirect
 ```
 
-**See**: [Pangolin Blueprints documentation](https://docs.pangolin.net/manage/blueprints#docker-labels-format)
+**Target health monitoring** (populates Pangolin's Health column; lets Pangolin make failover decisions):
+```yaml
+- "pangolin.proxy-resources.<id>.targets[0].healthcheck.hostname=<docker-network-host>"
+- "pangolin.proxy-resources.<id>.targets[0].healthcheck.port=<port>"
+- "pangolin.proxy-resources.<id>.targets[0].healthcheck.path=/health"
+```
+Defaults from the schema apply: `enabled=true`, `mode=http`, `interval=30s`, `timeout=5s`, healthy/unhealthy-threshold=1. Healthcheck hostname/port can differ from the proxy target's port (e.g., Keycloak's HC is on port 9000, the proxy target is 8080).
+
+**See**: [Pangolin Blueprints documentation](https://docs.pangolin.net/manage/blueprints#docker-labels-format). The exhaustive label schema lives in `~/dev/pangolin/server/lib/blueprints/types.ts` if a key isn't documented yet.
 
 ## Newt quick refs
 ### Configuration

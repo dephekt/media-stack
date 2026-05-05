@@ -18,16 +18,10 @@ NFS mount for photos will be at `/media/daniel/immich` (systemd mount from NAS).
 
 ### 2. Configure Environment
 
-Copy the template and customize:
-```bash
-cd /home/daniel/docker/immich
-cp config.env.template .env
-```
+Edit `immich/.env` (gitignored) directly. Required:
+- `DB_PASSWORD` - random alphanumeric password
 
-Edit `.env` and set:
-- `DB_PASSWORD` - Generate a random password (alphanumeric only)
-
-The following are already configured:
+Already configured:
 - `UPLOAD_LOCATION=/media/daniel/immich` - NFS-backed storage on NAS
 - `DB_DATA_LOCATION=/var/lib/immich/postgres` - Database on local SSD/NVMe
 - `TZ=US/Central` - Timezone
@@ -63,9 +57,10 @@ make immich-up
 ## Pangolin Integration
 
 - **Domain:** `photos.${DOMAIN}` → `photos.dephekt.net`
-- **Auth:** None (Immich handles its own auth or OIDC via Keycloak)
+- **Auth:** None at the Pangolin layer (Immich handles its own auth, with Keycloak OIDC available)
 - **Port:** 2283 (HTTP)
-- **Network:** `media_default` (shared with Newt for proxying)
+- **Networks:** `proxy` (external — for Newt routing) + `immich` (internal — server↔postgres/redis/ML)
+- **Healthcheck:** Pangolin probes `/api/server/ping` on `immich_server:2283` (label-driven — see compose)
 
 ## Makefile Commands
 

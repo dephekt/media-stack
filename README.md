@@ -47,9 +47,10 @@ I group sets of services into separate Docker compose projects in this repo:
   - auth (keycloak)
   - ldap
   - homepage (hugo landing site)
+  - update-manager (wud — image-update notifications)
 - media
   - jellyfin
-  - seer (jellyseer)
+  - seerr (jellyseerr)
   - sonarr
   - radarr
   - nzbget
@@ -61,7 +62,10 @@ I group sets of services into separate Docker compose projects in this repo:
 - iptv: iptvboss services
   - web vnc to access iptvboss app
   - XtremeCodes API for IPTV client playlist and guide data
-- **channels**: **Channels DVR** (`fancybits/channels-dvr`) — host networking; config and recordings under `/mnt/data/channels-dvr/` on the Docker host. Start with **`make channels-up`** or **`make up`** ([`channels/docker-compose.yml`](channels/docker-compose.yml)).
+- channels: Channels DVR (`fancybits/channels-dvr`) — host networking; config and recordings under `/mnt/data/channels-dvr/` on the Docker host. Start with `make channels-up` or `make up` ([`channels/docker-compose.yml`](channels/docker-compose.yml)).
+- monitoring: notification + probe machinery (apprise-api + ntfy + events-watcher + service-checks). Routes tagged HTTP POSTs from any homelab service to mobile push via the self-hosted ntfy instance with iOS instant-push via the upstream ntfy.sh APNs gateway. See [`monitoring/README.md`](monitoring/README.md).
+- cnotify: small FastAPI availability poller; emits `tag=cam` notifications via apprise-api on watched-entry transitions. See [`cnotify/README.md`](cnotify/README.md).
+- pangolin: the Pangolin reverse-proxy / control-plane itself, deployed via a separate Docker context (`pangolin-edge`) to the edge VPS. The Makefile auto-routes `pangolin-up` etc. to the right host. See [`pangolin/README.md`](pangolin/README.md).
 
 ## How it works (one minute)
 
