@@ -8,13 +8,14 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels
+STACKS := core media immich iptv channels monitoring
 
 SERVICES_core   := newt auth ldap homepage db update-manager
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
+SERVICES_monitoring := apprise-api ntfy
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -45,7 +46,14 @@ read_secret() { \
 }
 endef
 
-.PHONY: inject-secrets check-secrets sync-secrets build-script-providers
+.PHONY: inject-secrets check-secrets sync-secrets build-script-providers monitoring-config-load
+
+# Register monitoring/apprise/monitoring.yaml with apprise-api under the
+# 'monitoring' token. Idempotent -- re-run after editing the YAML or after
+# a fresh deploy. apprise-api persists the registered config in its bind-
+# mounted /config volume, so this is only needed at setup / on YAML edits.
+monitoring-config-load:
+	@DOCKER_CONTEXT=$(DOCKER_CONTEXT) ./monitoring/apprise/load-config.sh
 
 inject-secrets:
 	@echo "Injecting secrets from 1Password..."
@@ -63,7 +71,7 @@ inject-secrets:
 sync-secrets: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to remote host: $(REMOTE_HOST)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml $(REMOTE_HOST):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/apprise monitoring/ntfy $(REMOTE_HOST):~/docker/; \
 		echo "Secrets synced to remote host"; \
 	else \
 		echo "Using local context, no sync needed"; \

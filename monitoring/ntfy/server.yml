@@ -1,0 +1,5 @@
+# ntfy server configuration
+# Reference: https://docs.ntfy.sh/config/
+
+# Public-facing base URL — used for link generation in notifications.
+base-url: https://ntfy.dephekt.net

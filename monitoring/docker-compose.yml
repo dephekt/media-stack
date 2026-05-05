@@ -1,0 +1,53 @@
+services:
+  apprise-api:
+    image: caronc/apprise:latest
+    container_name: apprise-api
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./apprise:/config
+    labels:
+      - "pangolin.proxy-resources.apprise-api.name=Apprise"
+      - "pangolin.proxy-resources.apprise-api.protocol=http"
+      - "pangolin.proxy-resources.apprise-api.full-domain=apprise.${DOMAIN}"
+      - "pangolin.proxy-resources.apprise-api.targets[0].method=http"
+      - "pangolin.proxy-resources.apprise-api.targets[0].port=8000"
+      - "pangolin.proxy-resources.apprise-api.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.apprise-api.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.apprise-api.auth.auto-login-idp=1"
+      # WUD: semver tags only
+      - 'wud.tag.include=^\d+\.\d+\.\d+$$'
+    networks:
+      - monitoring
+      - proxy
+
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    env_file:
+      - config.env
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./ntfy/server.yml:/etc/ntfy/server.yml
+    labels:
+      - "pangolin.proxy-resources.ntfy.name=ntfy"
+      - "pangolin.proxy-resources.ntfy.protocol=http"
+      - "pangolin.proxy-resources.ntfy.full-domain=ntfy.${DOMAIN}"
+      - "pangolin.proxy-resources.ntfy.targets[0].method=http"
+      - "pangolin.proxy-resources.ntfy.targets[0].port=80"
+      # WUD: semver tags only
+      - 'wud.tag.include=^\d+\.\d+\.\d+$$'
+    networks:
+      - monitoring
+      - proxy
+
+networks:
+  monitoring:
+  proxy:
+    external: true
