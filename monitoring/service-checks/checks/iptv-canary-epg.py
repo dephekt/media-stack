@@ -20,6 +20,7 @@ each fire exactly one notification and steady-state is silent.
 Memory: the XMLTV response is ~12 MB; we stream-parse with iterparse and clear
 elements immediately, keeping memory flat regardless of file size.
 """
+
 import os
 import time
 import urllib.request
@@ -33,19 +34,21 @@ from _lib import check_main, notify, read_secret, state_get, state_set
 # ---------------------------------------------------------------------------
 
 LOCAL = os.environ["LOCAL_XC_URL"]
-USER  = read_secret("IPTV_LOCAL_USER.env")
-PASS  = read_secret("IPTV_LOCAL_PASS.env")
+USER = read_secret("IPTV_LOCAL_USER.env")
+PASS = read_secret("IPTV_LOCAL_PASS.env")
 
-_DEFAULT_CHANNELS = "ABCWICS.us,HallmarkChannel.us,HallmarkFamily.us,CBSKMOV.us,NBCWAND.us,skyhits.uk"
+_DEFAULT_CHANNELS = (
+    "ABCWICS.us,HallmarkChannel.us,HallmarkFamily.us,CBSKMOV.us,NBCWAND.us,skyhits.uk"
+)
 
 CANARY_IDS = [
     ch.strip()
     for ch in os.environ.get("EPG_CANARY_CHANNELS", _DEFAULT_CHANNELS).split(",")
     if ch.strip()
 ]
-MIN_FUTURE_PROG    = int(os.environ.get("EPG_CANARY_MIN_FUTURE_PROG", "6"))
-MIN_FUTURE_HOURS   = float(os.environ.get("EPG_CANARY_MIN_FUTURE_HOURS", "12"))
-MIN_UNIQUE_TITLES  = int(os.environ.get("EPG_CANARY_MIN_UNIQUE_TITLES", "3"))
+MIN_FUTURE_PROG = int(os.environ.get("EPG_CANARY_MIN_FUTURE_PROG", "6"))
+MIN_FUTURE_HOURS = float(os.environ.get("EPG_CANARY_MIN_FUTURE_HOURS", "12"))
+MIN_UNIQUE_TITLES = int(os.environ.get("EPG_CANARY_MIN_UNIQUE_TITLES", "3"))
 
 SCRIPT = "iptv-canary-epg"
 
@@ -53,6 +56,7 @@ SCRIPT = "iptv-canary-epg"
 # ---------------------------------------------------------------------------
 # XMLTV streaming parser
 # ---------------------------------------------------------------------------
+
 
 def _parse_canaries(stream, canary_set: set) -> dict:
     """Stream-parse XMLTV; return per-canary stats for the requested ids.
@@ -70,19 +74,16 @@ def _parse_canaries(stream, canary_set: set) -> dict:
 
     stats = {
         ch_id: {
-            "present":        False,
-            "display_name":   None,
-            "n_future_prog":  0,
+            "present": False,
+            "display_name": None,
+            "n_future_prog": 0,
             "latest_stop_ts": 0.0,
-            "titles":         set(),
+            "titles": set(),
         }
         for ch_id in canary_set
     }
 
-    current_channel_id   = None  # channel id we're currently inside
-    current_display_name = None
-
-    for event, elem in ET.iterparse(stream, events=("end",)):
+    for _event, elem in ET.iterparse(stream, events=("end",)):
         tag = elem.tag
 
         if tag == "channel":
@@ -125,13 +126,14 @@ def _parse_canaries(stream, canary_set: set) -> dict:
 # Per-canary health evaluation
 # ---------------------------------------------------------------------------
 
+
 def _evaluate(ch_id: str, s: dict, now: float) -> tuple[bool, str | None]:
     """Return (is_healthy, reason_or_None)."""
     if not s["present"]:
         return False, "channel not in EPG roster"
 
     latest_h = (s["latest_stop_ts"] - now) / 3600 if s["latest_stop_ts"] else 0.0
-    n_prog   = s["n_future_prog"]
+    n_prog = s["n_future_prog"]
     n_titles = len(s["titles"])
 
     reasons = []
@@ -150,6 +152,7 @@ def _evaluate(ch_id: str, s: dict, now: float) -> tuple[bool, str | None]:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 @check_main(SCRIPT)
 def main():

@@ -23,9 +23,14 @@ after FAILURE_THRESHOLD consecutive cycles have failed. Probes run in
 parallel across domains so the worst-case wall time stays under the
 1-minute cron cadence.
 """
-import os, time, urllib.error, urllib.request
+
+import os
+import time
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from _lib import notify, state_get, state_set, check_main
+
+from _lib import check_main, notify, state_get, state_set
 
 _DEFAULT_DOMAINS = (
     "auth.dephekt.net,"
@@ -43,7 +48,9 @@ _DEFAULT_DOMAINS = (
     "updates.stream.dephekt.net,"
     "pangolin.dephekt.net"
 )
-DOMAINS = [s.strip() for s in os.environ.get("PUBLIC_DOMAINS", _DEFAULT_DOMAINS).split(",") if s.strip()]
+DOMAINS = [
+    s.strip() for s in os.environ.get("PUBLIC_DOMAINS", _DEFAULT_DOMAINS).split(",") if s.strip()
+]
 TIMEOUT = float(os.environ.get("PUBLIC_PROBE_TIMEOUT", "15"))
 RETRY_DELAY = float(os.environ.get("PUBLIC_PROBE_RETRY_DELAY", "2"))
 FAILURE_THRESHOLD = int(os.environ.get("PUBLIC_FAILURE_THRESHOLD", "2"))
@@ -83,7 +90,7 @@ def probe(host: str) -> tuple[bool, str | None]:
 @check_main("public-availability")
 def main():
     with ThreadPoolExecutor(max_workers=max(len(DOMAINS), 1)) as ex:
-        results = list(zip(DOMAINS, ex.map(probe, DOMAINS)))
+        results = list(zip(DOMAINS, ex.map(probe, DOMAINS), strict=True))
 
     for host, (is_up, reason) in results:
         state_key = f"public_avail_{host}"
@@ -126,11 +133,14 @@ def main():
                 )
                 alerted = True
 
-        state_set(state_key, {
-            "consecutive_failures": failures,
-            "alerted": alerted,
-            "reason": reason,
-        })
+        state_set(
+            state_key,
+            {
+                "consecutive_failures": failures,
+                "alerted": alerted,
+                "reason": reason,
+            },
+        )
 
 
 if __name__ == "__main__":

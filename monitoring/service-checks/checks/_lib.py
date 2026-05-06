@@ -1,8 +1,13 @@
-import functools, json, os, sys, traceback, urllib.request
+import functools
+import json
+import os
+import sys
+import traceback
+import urllib.request
 from pathlib import Path
 
 APPRISE_URL = os.environ["APPRISE_URL"]
-STATE_DIR   = Path(os.environ.get("STATE_DIR", "/state"))
+STATE_DIR = Path(os.environ.get("STATE_DIR", "/state"))
 
 
 def read_secret(name: str) -> str:
@@ -39,6 +44,7 @@ def check_main(script_name: str):
     persistent failures fire once and recover-once. The script runs inside
     crond which only logs the traceback to stdout -- without this wrapper a
     silent failure (e.g. iptv stack down) produces no notification."""
+
     def deco(fn):
         @functools.wraps(fn)
         def wrapper(*a, **kw):
@@ -61,5 +67,7 @@ def check_main(script_name: str):
                 if state_get(err_key) is not None:
                     notify(tags=["info", "iptv"], title=f"{script_name} recovered")
                     state_set(err_key, None)
+
         return wrapper
+
     return deco

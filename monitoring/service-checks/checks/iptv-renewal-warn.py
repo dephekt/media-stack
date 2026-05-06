@@ -1,10 +1,14 @@
-import json, os, time, urllib.request
-from _lib import read_secret, notify, state_get, state_set, check_main
+import json
+import os
+import time
+import urllib.request
 
-UPSTREAM     = os.environ["UPSTREAM_XC_URL"]
-WARN_DAYS    = int(os.environ.get("EXP_WARNING_DAYS", "7"))
-USER         = read_secret("IPTV_UPSTREAM_USER.env")
-PASS         = read_secret("IPTV_UPSTREAM_PASS.env")
+from _lib import check_main, notify, read_secret, state_get, state_set
+
+UPSTREAM = os.environ["UPSTREAM_XC_URL"]
+WARN_DAYS = int(os.environ.get("EXP_WARNING_DAYS", "7"))
+USER = read_secret("IPTV_UPSTREAM_USER.env")
+PASS = read_secret("IPTV_UPSTREAM_PASS.env")
 
 
 @check_main("iptv-renewal-warn")
@@ -20,7 +24,9 @@ def main():
     now_ts = time.time()
     days_remaining = (exp_ts - now_ts) / 86400
 
-    print(f"[iptv-renewal-warn] exp_date={exp_ts} days_remaining={days_remaining:.1f} warn_days={WARN_DAYS}")
+    print(
+        f"[iptv-renewal-warn] exp_date={exp_ts} days_remaining={days_remaining:.1f} warn_days={WARN_DAYS}"
+    )
 
     if days_remaining >= WARN_DAYS:
         # Subscription is not yet within warning window; clear any prior warn state.

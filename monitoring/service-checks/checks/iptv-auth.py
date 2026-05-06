@@ -1,9 +1,12 @@
-import json, os, urllib.request
-from _lib import read_secret, notify, state_get, state_set, check_main
+import json
+import os
+import urllib.request
+
+from _lib import check_main, notify, read_secret, state_get, state_set
 
 UPSTREAM = os.environ["UPSTREAM_XC_URL"]
-USER     = read_secret("IPTV_UPSTREAM_USER.env")
-PASS     = read_secret("IPTV_UPSTREAM_PASS.env")
+USER = read_secret("IPTV_UPSTREAM_USER.env")
+PASS = read_secret("IPTV_UPSTREAM_PASS.env")
 
 
 @check_main("iptv-auth")

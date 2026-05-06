@@ -1,10 +1,13 @@
-import json, os, urllib.request
-from _lib import read_secret, notify, state_get, state_set, check_main
+import json
+import os
+import urllib.request
 
-LOCAL     = os.environ["LOCAL_XC_URL"]
-FLOOR     = int(os.environ.get("CHANNEL_FLOOR", "200"))
-USER      = read_secret("IPTV_LOCAL_USER.env")
-PASS      = read_secret("IPTV_LOCAL_PASS.env")
+from _lib import check_main, notify, read_secret, state_get, state_set
+
+LOCAL = os.environ["LOCAL_XC_URL"]
+FLOOR = int(os.environ.get("CHANNEL_FLOOR", "200"))
+USER = read_secret("IPTV_LOCAL_USER.env")
+PASS = read_secret("IPTV_LOCAL_PASS.env")
 
 
 @check_main("iptv-channel-count")

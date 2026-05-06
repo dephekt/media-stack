@@ -11,20 +11,25 @@ EPG_MIN_FUTURE_HOURS into the future. A fresh EPG always extends
 The response body is ~12 MB; we stream-parse it with xml.etree.iterparse
 and clear elements as we go to keep memory bounded.
 """
-import os, time, urllib.request, xml.etree.ElementTree as ET
-from datetime import datetime
-from _lib import read_secret, notify, state_get, state_set, check_main
 
-LOCAL              = os.environ["LOCAL_XC_URL"]
-MIN_FUTURE_HOURS   = float(os.environ.get("EPG_MIN_FUTURE_HOURS", "6"))
-USER               = read_secret("IPTV_LOCAL_USER.env")
-PASS               = read_secret("IPTV_LOCAL_PASS.env")
+import os
+import time
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import datetime
+
+from _lib import check_main, notify, read_secret, state_get, state_set
+
+LOCAL = os.environ["LOCAL_XC_URL"]
+MIN_FUTURE_HOURS = float(os.environ.get("EPG_MIN_FUTURE_HOURS", "6"))
+USER = read_secret("IPTV_LOCAL_USER.env")
+PASS = read_secret("IPTV_LOCAL_PASS.env")
 
 
 def latest_stop_ts(stream) -> float:
     """Stream-parse XMLTV; return max(programme.stop) as Unix timestamp."""
     latest = 0.0
-    for event, elem in ET.iterparse(stream, events=("end",)):
+    for _event, elem in ET.iterparse(stream, events=("end",)):
         if elem.tag == "programme":
             stop = elem.get("stop", "")
             if stop:
@@ -48,8 +53,10 @@ def main():
     future_hours = (latest - time.time()) / 3600
     is_stale = future_hours < MIN_FUTURE_HOURS
 
-    print(f"[iptv-epg-freshness] latest_stop_in={future_hours:.1f}h "
-          f"min={MIN_FUTURE_HOURS}h stale={is_stale}")
+    print(
+        f"[iptv-epg-freshness] latest_stop_in={future_hours:.1f}h "
+        f"min={MIN_FUTURE_HOURS}h stale={is_stale}"
+    )
 
     prev_stale = state_get("iptv_epg_stale", False)
     state_set("iptv_epg_stale", is_stale)
@@ -59,7 +66,7 @@ def main():
             tags=["critical", "iptv"],
             title="IPTV EPG coverage running thin",
             body=f"Latest programme ends in {future_hours:.1f}h "
-                 f"(want >= {MIN_FUTURE_HOURS}h). Check iptvboss EPG refresh.",
+            f"(want >= {MIN_FUTURE_HOURS}h). Check iptvboss EPG refresh.",
         )
     elif not is_stale and prev_stale:
         notify(
