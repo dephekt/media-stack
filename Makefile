@@ -183,3 +183,36 @@ ldap-reset-admin:
 	  printf "dn: %s\nchangetype: modify\nreplace: olcRootPW\nolcRootPW: %s\n" "$$DBDN" "$$HASH" > /tmp/reset.ldif; \
 	  ldapmodify -Y EXTERNAL -H ldapi:/// -f /tmp/reset.ldif; \
 	  echo "✓ LDAP admin password updated"'
+
+# -----------------------------------------------------------------------------
+# Linting / formatting
+# -----------------------------------------------------------------------------
+# Requires:
+#   uv         -- runs ruff/yamllint via `uvx` without a project venv
+#   shellcheck -- apt install shellcheck
+#
+# YAML target uses `git ls-files` so rendered/gitignored YAML (e.g. the
+# 1Password-rendered pangolin/config/config.yml) is automatically skipped.
+
+PY_LINT_PATHS   := monitoring/service-checks
+SH_LINT_FILES   := $(shell find . -type f -name '*.sh' -not -path './.git/*' -not -path '*/secrets/*')
+YAML_LINT_FILES := $(shell git ls-files '*.yml' '*.yaml' '*.yml.template' '*.yaml.template')
+
+.PHONY: lint lint-py lint-sh lint-yaml format format-check
+
+lint: lint-py lint-sh lint-yaml
+
+lint-py:
+	uvx ruff check $(PY_LINT_PATHS)
+
+lint-sh:
+	shellcheck $(SH_LINT_FILES)
+
+lint-yaml:
+	uvx yamllint $(YAML_LINT_FILES)
+
+format:
+	uvx ruff format $(PY_LINT_PATHS)
+
+format-check:
+	uvx ruff format --check $(PY_LINT_PATHS)

@@ -205,3 +205,16 @@ docker ps --format json | filter_pangolin_labels
 
 #### Why these exist
 Docker's `--format json` outputs labels as a single comma-separated string requiring brittle regex parsing. These functions convert that flat string into proper JSON objects, enabling use of jq built-ins (`select()`, `map()`, `group_by()`) for efficient filtering and aggregation over container label data.
+
+## Linting
+
+- `make lint`         — runs ruff (Python), shellcheck (POSIX sh), yamllint (YAML)
+- `make lint-py` / `lint-sh` / `lint-yaml` — individual linters
+- `make format`       — applies ruff formatter to Python under `monitoring/service-checks/`
+- `make format-check` — verifies Python formatting without writing
+
+Requires:
+- `uv` (https://docs.astral.sh/uv/) — runs ruff and yamllint via `uvx` without a project venv
+- `shellcheck` — `apt install shellcheck`
+
+Configs live at the repo root: `pyproject.toml` (ruff), `.shellcheckrc`, `.yamllint.yml`. The yamllint config keeps strict 2-space indentation but disables `line-length` and `document-start` (compose files have legitimately long label/URL lines and don't use `---`). The yamllint target uses `git ls-files` so rendered output like `pangolin/config/config.yml` is automatically skipped — only the committed `*.template` is linted.

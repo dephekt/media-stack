@@ -18,6 +18,8 @@ monitoring/apprise/.tmp_hc
 cnotify/data/state.json
 
 __pycache__/
+.ruff_cache/
+.venv/
 
 # Pangolin: rendered from config.yml.template by render-config.sh
 pangolin/config/config.yml
