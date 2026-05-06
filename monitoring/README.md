@@ -80,7 +80,7 @@ The path is `/notify/monitoring` (the registered token name), not bare
 | `iptv-epg-freshness.py`      | `:29` hourly | latest `<programme stop>` vs `EPG_MIN_FUTURE_HOURS` |
 | `iptv-canary-epg.py`         | `:35` hourly | per-channel EPG presence/coverage for a watchlist |
 | `iptv-renewal-warn.py`       | `09:00` daily | `exp_date - now() < EXP_WARNING_DAYS` (once/day) |
-| `public-availability.py`     | every minute | HEAD probe of each public dephekt.net subdomain  |
+| `public-availability.py`     | every minute | HEAD probe of each public dephekt.net subdomain (parallel; 1 retry per host; alert after 2 consecutive failures) |
 
 All scripts use the shared `_lib.py` (`read_secret`, `notify`, `state_get/set`,
 `@check_main` decorator). Per-script and per-target state files persist in
