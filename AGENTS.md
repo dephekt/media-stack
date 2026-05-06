@@ -15,7 +15,6 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`.
 - **IPTVBoss** (`iptv/`): IPTV management and XC server.
 - **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host).
-- **cnotify** (`cnotify/`): Small FastAPI availability poller; emits `tag=cam` notifications via apprise-api on watched-entry transitions.
 
 ### Monitoring & alerting (`monitoring/`)
 - **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to ntfy topics per `monitoring/apprise/monitoring.yaml.template`.
@@ -42,7 +41,6 @@ Read `README.md` first. This is a reference, not a tutorial.
 ├─ iptv/                         # iptvboss (XC server + noVNC)
 ├─ channels/                     # channels-dvr (host network)
 ├─ monitoring/                   # apprise-api, ntfy, events-watcher, service-checks
-├─ cnotify/                      # availability poller; deploys to media-server
 ├─ pangolin/                     # pangolin server + gerbil + traefik; deploys to pangolin-edge context
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
@@ -54,20 +52,20 @@ Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional 
 - **Core config** (`core/config.env`): `DOMAIN`, `KC_DB`, `KC_DB_USERNAME`, `KC_DB_URL`, `LDAP_BASE_DN`, `PANGOLIN_ENDPOINT`. Loaded by every stack via the Makefile's `include core/config.env`/`export`.
 - **Per-stack secrets** live under each stack's `secrets/` directory (git-ignored by `**/secrets/`). All are written by `make inject-secrets` from 1Password.
 - Single-value `.env` files (e.g. `core/secrets/NEWT_ID.env`) get exposed as Docker Compose secrets and read at runtime via the `secrets2env.sh` shim baked into the stackdrift custom images. This shim reads `/run/secrets/<NAME>.env` and exports `<NAME>` as a regular env var before exec'ing the service.
-- A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/ntfy.env`, `pangolin/secrets/pangolin.env`, `cnotify/secrets/*.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (ntfy, traefik) or for our own custom images that just want plain env.
+- A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/ntfy.env`, `pangolin/secrets/pangolin.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (ntfy, traefik) or for our own custom images that just want plain env.
 - Secret rotation: change values in 1Password, run `make inject-secrets` (re-renders any templated configs too), then `make sync-secrets` to ship to the remote and `make <stack>-up` to recreate any service whose env changed.
 
 ## Makefile
 **Always use the Makefile** — never call `docker compose` directly. Direct invocations bypass the env exports the Makefile provides; in particular `${DOMAIN}` would render empty in Pangolin labels and break resource registration. Every deploy goes through `make`.
 
 ### How targets are generated
-- `STACKS := core media immich iptv channels monitoring cnotify pangolin` — list of every stack.
+- `STACKS := core media immich iptv channels monitoring pangolin` — list of every stack.
 - `SERVICES_<stack> := svc1 svc2 ...` — per-stack service list, used to auto-generate per-service targets.
-- `Makefile.include` evaluates `STACK_RULES` and `SERVICE_RULES` over those lists to emit `<stack>-up/-down/-restart/-logs` and `<svc>-up/-restart/-logs/-stop/-start` for every name. When a service name matches its stack name (e.g. `cnotify`/`cnotify`, `pangolin`/`pangolin`), the SERVICE_RULES generation is skipped for that service so `<name>-up` resolves to the whole-stack rule, not just one service.
+- `Makefile.include` evaluates `STACK_RULES` and `SERVICE_RULES` over those lists to emit `<stack>-up/-down/-restart/-logs` and `<svc>-up/-restart/-logs/-stop/-start` for every name. When a service name matches its stack name (e.g. `pangolin`/`pangolin`), the SERVICE_RULES generation is skipped for that service so `<name>-up` resolves to the whole-stack rule, not just one service.
 - Per-stack Docker context: `STACK_CONTEXT(stack) = $(or $(CONTEXT_$(stack)),$(DOCKER_CONTEXT))`. Default is `media-server`; override per stack via `CONTEXT_<stack>=<context>`. Currently `CONTEXT_pangolin=pangolin-edge` routes pangolin's deploys to the edge VPS while every other stack lands on `media-server`.
 
 ### Sync split
-`sync-secrets-media` rsyncs all media-server-bound stack files to `~/docker/` on `containers`. `sync-secrets-pangolin` rsyncs the pangolin stack to `/opt/pangolin/` on the edge VPS. Bare `sync-secrets` runs both. Neither passes `--delete`; on-host runtime state (LE certs, sqlite, gerbil keys, cnotify state) is preserved.
+`sync-secrets-media` rsyncs all media-server-bound stack files to `~/docker/` on `containers`. `sync-secrets-pangolin` rsyncs the pangolin stack to `/opt/pangolin/` on the edge VPS. Bare `sync-secrets` runs both. Neither passes `--delete`; on-host runtime state (LE certs, sqlite, gerbil keys) is preserved.
 
 ### Common commands
 ```bash

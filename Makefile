@@ -18,7 +18,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring cnotify pangolin
+STACKS := core media immich iptv channels monitoring pangolin
 
 SERVICES_core   := newt auth ldap homepage db update-manager
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -26,7 +26,6 @@ SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api ntfy events-watcher service-checks
-SERVICES_cnotify := cnotify
 SERVICES_pangolin := pangolin gerbil traefik
 
 REQUIRED_SECRETS := \
@@ -42,9 +41,6 @@ REQUIRED_SECRETS := \
 	monitoring/secrets/IPTV_UPSTREAM_PASS.env \
 	monitoring/secrets/IPTV_LOCAL_USER.env \
 	monitoring/secrets/IPTV_LOCAL_PASS.env \
-	cnotify/secrets/BASIC_AUTH_USER.env \
-	cnotify/secrets/BASIC_AUTH_PASSWORD.env \
-	cnotify/secrets/BASE_URL.env \
 	pangolin/secrets/pangolin.env \
 	pangolin/config/config.yml
 
@@ -80,7 +76,7 @@ monitoring-config-load:
 
 inject-secrets:
 	@echo "Injecting secrets from 1Password..."
-	@mkdir -p core/secrets monitoring/secrets cnotify/secrets
+	@mkdir -p core/secrets monitoring/secrets
 	@$(READ_SECRET_FN); \
 	read_secret "op://Develop/Keycloak Admin/password" "core/secrets/KEYCLOAK_ADMIN_PASSWORD.env"; \
 	read_secret "op://Develop/Keycloak DB/password" "core/secrets/DB_PASSWORD.env"; \
@@ -91,10 +87,7 @@ inject-secrets:
 	read_secret "op://Develop/IPTV Upstream/username" "monitoring/secrets/IPTV_UPSTREAM_USER.env"; \
 	read_secret "op://Develop/IPTV Upstream/password" "monitoring/secrets/IPTV_UPSTREAM_PASS.env"; \
 	read_secret "op://Develop/IPTV Local XC/username" "monitoring/secrets/IPTV_LOCAL_USER.env"; \
-	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"; \
-	read_secret "op://Develop/cam-notify-app/username" "cnotify/secrets/BASIC_AUTH_USER.env"; \
-	read_secret "op://Develop/cam-notify-app/password" "cnotify/secrets/BASIC_AUTH_PASSWORD.env"; \
-	read_secret "op://Develop/cam-notify-app/base-url" "cnotify/secrets/BASE_URL.env"
+	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"
 	@# ntfy upstream-access-token: written as KEY=VALUE so docker compose
 	@# env_file picks it up directly (ntfy doesn't support _FILE env vars).
 	@secret_val=$$(op read "op://Personal/Ntfy/access-token") || { echo "ERROR: failed to read op://Personal/Ntfy/access-token"; exit 1; }; \
@@ -117,7 +110,7 @@ inject-secrets:
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy monitoring/events-watcher monitoring/service-checks cnotify/secrets cnotify/config.env $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/ntfy monitoring/events-watcher monitoring/service-checks $(REMOTE_HOST_media):~/docker/; \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \

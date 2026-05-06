@@ -35,7 +35,7 @@ placeholders; `render-config.sh` substitutes the actual topic names from
 | Tag                           | Lands on topic                         | Source of alerts                                     |
 |-------------------------------|----------------------------------------|------------------------------------------------------|
 | `iptv`                        | `notify-iptv-<rand>`                   | service-checks IPTV probes (auth, channels, EPG, renewal, canary) |
-| `cam`                         | `notify-cam-<rand>`                    | cnotify availability transitions                     |
+| `cam`                         | `notify-cam-<rand>`                    | cam-notify availability transitions                  |
 | `public-infra`                | `notify-public-infra-<rand>`           | public-availability HEAD probe — proxy/edge breakage |
 | `critical`, `warning`, `info` | `notify-general-<rand>`                | events-watcher container transitions, anything else  |
 

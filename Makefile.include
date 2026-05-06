@@ -54,11 +54,11 @@ endef
 
 # Generate targets for all stacks and services defined in STACKS/SERVICES_* lists.
 # Skip SERVICE_RULES for any service whose name is the same as its containing
-# stack (e.g. pangolin/pangolin or cnotify/cnotify) -- in that case the STACK
-# rule already covers <name>-up/-restart/-logs and we'd otherwise get make
-# "overriding recipe" warnings. The lost per-service shortcut for those cases
-# is acceptable: `<stack>-up` is whole-stack and matches user expectation;
-# single-service operations on the matching service can be done with
+# stack (e.g. pangolin/pangolin) -- in that case the STACK rule already covers
+# <name>-up/-restart/-logs and we'd otherwise get make "overriding recipe"
+# warnings. The lost per-service shortcut for those cases is acceptable:
+# `<stack>-up` is whole-stack and matches user expectation; single-service
+# operations on the matching service can be done with
 # `docker compose up -d <svc>` directly.
 $(foreach stack,$(STACKS),$(foreach svc,$(filter-out $(stack),$(SERVICES_$(stack))),$(eval $(call SERVICE_RULES,$(svc),$(stack),--build))))
 $(foreach stack,$(STACKS),$(eval $(call STACK_RULES,$(stack),--build)))
