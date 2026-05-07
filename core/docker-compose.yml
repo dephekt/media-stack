@@ -1,6 +1,6 @@
 services:
   newt:
-    image: codeberg.org/stackdrift-images/newt:edge-newt1.12.3
+    image: codeberg.org/stackdrift-images/newt:fix-stale-tunnel-deadlock-newt1.12.3
     container_name: newt
     restart: unless-stopped
     env_file:
