@@ -31,7 +31,17 @@ urls:
   - ntfy://ntfy/{{TOPIC_IPTV}}:
       tag: iptv
 
+  # IPTV alerts also fan out to a Discord channel. Apprise expects the
+  # discord:// scheme with id/token, not the full https://discord.com/api/...
+  # URL; render-config.sh parses the webhook URL stored in 1Password into
+  # these two pieces.
+  - discord://{{DISCORD_IPTV_ID}}/{{DISCORD_IPTV_TOKEN}}:
+      tag: iptv
+
   - ntfy://ntfy/{{TOPIC_CAM}}:
+      tag: cam
+
+  - discord://{{DISCORD_CAM_ID}}/{{DISCORD_CAM_TOKEN}}:
       tag: cam
 
   - ntfy://ntfy/{{TOPIC_PUBLIC_INFRA}}:
@@ -39,6 +49,16 @@ urls:
 
   - ntfy://ntfy/{{TOPIC_GENERAL}}:
       tag:
+        - critical
+        - warning
+        - info
+
+  # Infrastructure alerts also fan out to a Discord channel. One webhook
+  # covers both the public-infra probe and the catch-all general topic
+  # (critical/warning/info), since both are about homelab infra health.
+  - discord://{{DISCORD_INFRA_ID}}/{{DISCORD_INFRA_TOKEN}}:
+      tag:
+        - public-infra
         - critical
         - warning
         - info
