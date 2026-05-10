@@ -34,46 +34,15 @@ services:
       retries: 3
       start_period: 30s
 
-  ntfy:
-    image: binwiederhier/ntfy:latest
-    container_name: ntfy
-    restart: unless-stopped
-    command: serve
-    env_file:
-      - config.env
-      - secrets/ntfy.env
-    environment:
-      - TZ=${TZ}
-    volumes:
-      - ./ntfy/server.yml:/etc/ntfy/server.yml
-    labels:
-      - "pangolin.proxy-resources.ntfy.name=ntfy"
-      - "pangolin.proxy-resources.ntfy.protocol=http"
-      - "pangolin.proxy-resources.ntfy.full-domain=ntfy.${DOMAIN}"
-      - "pangolin.proxy-resources.ntfy.targets[0].method=http"
-      - "pangolin.proxy-resources.ntfy.targets[0].port=80"
-      # Pangolin target health check (ntfy's /v1/health returns {"healthy":true})
-      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.hostname=ntfy"
-      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.port=80"
-      - "pangolin.proxy-resources.ntfy.targets[0].healthcheck.path=/v1/health"
-      # WUD: semver tags only
-      - 'wud.tag.include=^\d+\.\d+\.\d+$$'
-    networks:
-      - monitoring
-      - proxy
-    healthcheck:
-      test: ["CMD", "wget", "-qO/dev/null", "http://localhost/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-
   events-watcher:
     build: ./events-watcher
     container_name: events-watcher
     restart: unless-stopped
     env_file:
       - config.env
+      # HC_PING_URL_EVENTS_WATCHER for the dead-man heartbeat in watch.sh.
+      # Rendered from 1Password by monitoring/apprise/render-config.sh.
+      - secrets/healthchecks.env
     environment:
       - APPRISE_URL=http://apprise-api:8000/notify/monitoring
       - STATE_DIR=/state
@@ -90,6 +59,10 @@ services:
     restart: unless-stopped
     env_file:
       - config.env
+      # HC_PING_URL_* for each cron-driven check; consumed by _lib.py's
+      # check_main decorator. Rendered from 1Password by
+      # monitoring/apprise/render-config.sh.
+      - secrets/healthchecks.env
     environment:
       - APPRISE_URL=http://apprise-api:8000/notify/monitoring
       - LOCAL_XC_URL=http://iptvboss:8001

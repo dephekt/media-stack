@@ -6,8 +6,10 @@
 # Daily renewal warning at 09:00 local
 0 9 * * *   python3 /checks/iptv-renewal-warn.py    >> /proc/1/fd/1 2>&1
 
-# Every minute: probe each public dephekt.net URL from outside the docker
-# network. Catches proxy/tunnel/edge breakage that container healthchecks and
-# newt's per-target healthchecks miss (both probe inside the docker network).
-# 14 domains x 1 probe/min = ~0.23 req/sec; trivial against self-hosted infra.
-* * * * *   python3 /checks/public-availability.py >> /proc/1/fd/1 2>&1
+# Apprise pipeline dead-man heartbeat. Fires a notification with the
+# `heartbeat` tag through apprise; apprise routes that tag to hc.io via a
+# generic jsons:// POST to hc-ping.com/<uuid> (apprise 1.10 has no dedicated
+# healthchecks plugin). If anything in the chain (this cron alive -> apprise
+# alive -> apprise has internet -> apprise can reach hc.io) breaks, hc.io's
+# own Discord integration pages. This is the alerting-pipeline witness.
+*/5 * * * * curl -fsS -m 10 -X POST -H 'Content-Type: application/json' -d '{"title":"apprise-pipeline heartbeat","body":"ok"}' 'http://apprise-api:8000/notify/monitoring?tag=heartbeat' >> /proc/1/fd/1 2>&1

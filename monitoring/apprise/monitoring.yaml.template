@@ -1,9 +1,13 @@
 # Apprise YAML config TEMPLATE — rendered to monitoring.yaml at inject-secrets time.
 #
-# Topic placeholders {{TOPIC_IPTV}} and {{TOPIC_GENERAL}} are substituted with
-# values from 1Password (op://Personal/Ntfy/topic-{iptv,general}). The rendered
-# file at monitoring/apprise/monitoring.yaml is gitignored; this template is
-# committed.
+# Topic placeholders {{TOPIC_*}} are substituted with values from 1Password
+# (op://Personal/Ntfy/topic-{iptv,general}). The hc.io UUID placeholder
+# {{HC_APPRISE_PIPELINE_UUID}} is substituted from
+# op://Personal/Healthchecks.io/ping-url-apprise-pipeline and embedded into a
+# generic jsons:// URL (apprise 1.10 has no dedicated healthchecks plugin, so
+# we POST JSON to hc-ping.com/<uuid>; hc.io ignores the body and treats the
+# request as a successful ping). The rendered file at
+# monitoring/apprise/monitoring.yaml is gitignored; this template is committed.
 #
 # Why: the docker repo is public for educational sharing. ntfy itself does not
 # support OIDC/external auth, so the only practical access control is "topic
@@ -12,10 +16,17 @@
 # the topic values in 1Password, run `make inject-secrets`, then `make
 # monitoring-config-load`.
 #
-# IMPORTANT: URLs always target the in-docker hostname 'ntfy' (i.e., the ntfy
-# container on the monitoring network), never 'ntfy.sh'. Using 'ntfy://ntfy.sh/...'
-# would publish notifications to the public ntfy.sh instance. The correct form is
-# 'ntfy://ntfy/<topic>' where 'ntfy' resolves to the ntfy container via Docker DNS.
+# Routing strategy:
+#  - Infra-alert tags (iptv, critical/warning/info) go to PUBLIC ntfy.sh +
+#    Discord. ntfy.sh is independent of self-hosted infra so alerts get out
+#    even if wireguard / pangolin / newt is broken; Discord is the primary
+#    channel since iOS ntfy lacks per-topic mute controls.
+#  - The cam tag (cnotify) goes to Discord only -- self-hosted ntfy was
+#    retired because iOS ntfy can't mute topics, making Discord (with mutable
+#    channels) the better surface despite the third-party tradeoff.
+#  - The heartbeat tag goes to hc.io via a generic jsons:// POST; the hc.io
+#    check pages via Discord if the apprise pipeline ever stops firing the
+#    heartbeat (cron dead, apprise dead, internet egress dead, etc.).
 #
 # ${VAR} interpolation is NOT supported in Apprise YAML at runtime; the {{...}}
 # placeholders here are substituted by render-config.sh before apprise sees the
@@ -28,7 +39,7 @@
 # under-document this; tested via apprise CLI directly to confirm.
 
 urls:
-  - ntfy://ntfy/{{TOPIC_IPTV}}:
+  - ntfy://ntfy.sh/{{TOPIC_IPTV}}:
       tag: iptv
 
   # IPTV alerts also fan out to a Discord channel. Apprise expects the
@@ -38,27 +49,27 @@ urls:
   - discord://{{DISCORD_IPTV_ID}}/{{DISCORD_IPTV_TOKEN}}:
       tag: iptv
 
-  - ntfy://ntfy/{{TOPIC_CAM}}:
-      tag: cam
-
   - discord://{{DISCORD_CAM_ID}}/{{DISCORD_CAM_TOKEN}}:
       tag: cam
 
-  - ntfy://ntfy/{{TOPIC_PUBLIC_INFRA}}:
-      tag: public-infra
-
-  - ntfy://ntfy/{{TOPIC_GENERAL}}:
+  - ntfy://ntfy.sh/{{TOPIC_GENERAL}}:
       tag:
         - critical
         - warning
         - info
 
-  # Infrastructure alerts also fan out to a Discord channel. One webhook
-  # covers both the public-infra probe and the catch-all general topic
-  # (critical/warning/info), since both are about homelab infra health.
+  # Infrastructure alerts also fan out to a Discord channel (catch-all
+  # general topic: critical/warning/info).
   - discord://{{DISCORD_INFRA_ID}}/{{DISCORD_INFRA_TOKEN}}:
       tag:
-        - public-infra
         - critical
         - warning
         - info
+
+  # Apprise pipeline dead-man heartbeat. A cron in service-checks fires this
+  # tag every 5 minutes; if anything in the chain (cron alive -> apprise alive
+  # -> apprise has internet egress -> apprise can reach hc.io) breaks, hc.io
+  # stops getting pings and pages via its own Discord integration. This is
+  # entirely independent of ntfy + the home-network alert path.
+  - jsons://hc-ping.com/{{HC_APPRISE_PIPELINE_UUID}}:
+      tag: heartbeat

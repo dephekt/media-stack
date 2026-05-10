@@ -6,6 +6,17 @@ STATE_FILE="$STATE_DIR/events-watcher-last-status.json"
 mkdir -p "$STATE_DIR"
 [ -f "$STATE_FILE" ] || echo '{}' > "$STATE_FILE"
 
+# Background heartbeat to healthchecks.io: pings every 5 minutes so hc.io's
+# dead-man check goes red (and pages via its own Discord integration) if this
+# daemon ever silently dies. Skipped if HC_PING_URL_EVENTS_WATCHER is unset to
+# keep local/dev runs quiet. Detached subshell so a hung curl can't stall the
+# event stream.
+( while true; do
+    [ -n "${HC_PING_URL_EVENTS_WATCHER:-}" ] && \
+      curl -fsS -m 10 "$HC_PING_URL_EVENTS_WATCHER" >/dev/null 2>&1 || true
+    sleep 300
+  done ) &
+
 emit() {
   # emit <tag> <name> <title> [<body>]
   # apprise-api rejects empty bodies with HTTP 400, so substitute a
