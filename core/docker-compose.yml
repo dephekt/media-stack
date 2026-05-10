@@ -131,7 +131,7 @@ services:
       start_period: 30s
 
   homepage:
-    image: codeberg.org/stackdrift-images/homepage:1.0.2-hugo0.152.1
+    image: codeberg.org/stackdrift-images/homepage:1.0.3-hugo0.161.1
     container_name: homepage
     restart: unless-stopped
     env_file:
