@@ -17,10 +17,12 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host).
 
 ### Monitoring & alerting (`monitoring/`)
-- **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to ntfy topics per `monitoring/apprise/monitoring.yaml.template`.
-- **ntfy**: Self-hosted push-notification server with iOS instant push via the upstream ntfy.sh APNs gateway.
-- **events-watcher**: Tails `docker events --filter event=health_status` and turns container healthcheck transitions into `tag=critical`/`tag=info` notifications.
-- **service-checks**: supercronic-driven container running probe scripts under `service-checks/checks/`. Runs IPTV-specific probes (auth, channel-count, EPG freshness, EPG canary, renewal warning) and an end-to-end public-URL availability check (`tag=public-infra`) that probes each public dephekt.net subdomain over HTTPS to catch proxy/edge breakage that neither container healthchecks nor Newt's per-target healthchecks would see.
+Three local containers + two SaaS witnesses; all paths land in Discord (and UptimeRobot also sends mobile push). See `monitoring/README.md` for the routing matrix and the constellation-of-alerts diagnostic pattern.
+- **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to Discord webhooks + ntfy.sh per `monitoring/apprise/monitoring.yaml.template`.
+- **events-watcher**: Tails `docker events --filter event=health_status` and turns container healthcheck transitions into `tag=critical`/`tag=info` notifications. Pings healthchecks.io every 5 min as a dead-man for the daemon itself.
+- **service-checks**: supercronic-driven container running probe scripts under `service-checks/checks/` (IPTV auth, channel-count, EPG freshness, EPG canary, renewal warning). Each script pings its own hc.io check at start/success/fail via the `_lib.py` `check_main` decorator. A `*/5` heartbeat cron POSTs `tag=heartbeat` through apprise to hc.io as the apprise-pipeline dead-man.
+- **UptimeRobot** (SaaS, off-box): external HTTP probes for the public dephekt.net domains. Status page at `status.dephekt.net`. Notifies via mobile push + a Discord webhook into `#public-status`. Lives outside the homelab so it still pages when home internet is down.
+- **Healthchecks.io** (SaaS, off-box): dead-man checks (one per cron job, plus events-watcher and apprise-pipeline). Ping URLs are provisioned via API and stored in 1Password (`op://Personal/Healthchecks.io/ping-url-*`); render-config.sh injects them at deploy time. Alerts via hc.io's Discord integration.
 
 ## Networks
 - **`proxy`** (external, shared): All frontend containers that Pangolin proxies to
@@ -40,19 +42,19 @@ Read `README.md` first. This is a reference, not a tutorial.
 ├─ immich/                       # immich-server, machine-learning, postgres, redis
 ├─ iptv/                         # iptvboss (XC server + noVNC)
 ├─ channels/                     # channels-dvr (host network)
-├─ monitoring/                   # apprise-api, ntfy, events-watcher, service-checks
+├─ monitoring/                   # apprise-api, events-watcher, service-checks (+ SaaS: UptimeRobot, Healthchecks.io)
 ├─ pangolin/                     # pangolin server + gerbil + traefik; deploys to pangolin-edge context
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
 ```
 
-Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional `secrets/` (gitignored), and any per-stack subdirectories (`apprise/`, `ntfy/`, `events-watcher/`, `service-checks/`, `config/traefik/`, etc.). Rendered config files (e.g. `monitoring/apprise/monitoring.yaml`, `pangolin/config/config.yml`) are gitignored and reproduced from `*.template` siblings via per-stack `render-config.sh` scripts at `make inject-secrets` time.
+Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional `secrets/` (gitignored), and any per-stack subdirectories (`apprise/`, `events-watcher/`, `service-checks/`, `config/traefik/`, etc.). Rendered config files (e.g. `monitoring/apprise/monitoring.yaml`, `pangolin/config/config.yml`) are gitignored and reproduced from `*.template` siblings via per-stack `render-config.sh` scripts at `make inject-secrets` time.
 
 ## Environment & secrets
 - **Core config** (`core/config.env`): `DOMAIN`, `KC_DB`, `KC_DB_USERNAME`, `KC_DB_URL`, `LDAP_BASE_DN`, `PANGOLIN_ENDPOINT`. Loaded by every stack via the Makefile's `include core/config.env`/`export`.
 - **Per-stack secrets** live under each stack's `secrets/` directory (git-ignored by `**/secrets/`). All are written by `make inject-secrets` from 1Password.
 - Single-value `.env` files (e.g. `core/secrets/NEWT_ID.env`) get exposed as Docker Compose secrets and read at runtime via the `secrets2env.sh` shim baked into the stackdrift custom images. This shim reads `/run/secrets/<NAME>.env` and exports `<NAME>` as a regular env var before exec'ing the service.
-- A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/ntfy.env`, `pangolin/secrets/pangolin.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (ntfy, traefik) or for our own custom images that just want plain env.
+- A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/healthchecks.env`, `pangolin/secrets/pangolin.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (traefik) or for our own custom images that just want plain env.
 - Secret rotation: change values in 1Password, run `make inject-secrets` (re-renders any templated configs too), then `make sync-secrets` to ship to the remote and `make <stack>-up` to recreate any service whose env changed.
 
 ## Makefile
@@ -73,7 +75,7 @@ make inject-secrets         # Pull all secrets from 1P; render template configs
 make sync-secrets           # rsync to both remote hosts
 make up                     # Start every stack on its respective context
 make <stack>-up             # Bring up one stack (e.g. core-up, monitoring-up)
-make <svc>-restart          # Restart one service (e.g. auth-restart, ntfy-restart)
+make <svc>-restart          # Restart one service (e.g. auth-restart, apprise-api-restart)
 make logs-<stack>           # Follow logs for one stack
 ```
 

@@ -63,7 +63,7 @@ I group sets of services into separate Docker compose projects in this repo:
   - web vnc to access iptvboss app
   - XtremeCodes API for IPTV client playlist and guide data
 - channels: Channels DVR (`fancybits/channels-dvr`) — host networking; config and recordings under `/mnt/data/channels-dvr/` on the Docker host. Start with `make channels-up` or `make up` ([`channels/docker-compose.yml`](channels/docker-compose.yml)).
-- monitoring: notification + probe machinery (apprise-api + ntfy + events-watcher + service-checks). Routes tagged HTTP POSTs from any homelab service to mobile push via the self-hosted ntfy instance with iOS instant-push via the upstream ntfy.sh APNs gateway. See [`monitoring/README.md`](monitoring/README.md).
+- monitoring: notification + probe machinery (apprise-api + events-watcher + service-checks) plus two SaaS witnesses (UptimeRobot for external HTTP probes; Healthchecks.io for dead-man checks). All paths land in Discord; UptimeRobot also sends mobile push. Public status page at [status.dephekt.net](https://status.dephekt.net/). See [`monitoring/README.md`](monitoring/README.md).
 - pangolin: the Pangolin reverse-proxy / control-plane itself, deployed via a separate Docker context (`pangolin-edge`) to the edge VPS. The Makefile auto-routes `pangolin-up` etc. to the right host. See [`pangolin/README.md`](pangolin/README.md).
 
 ## How it works (one minute)
