@@ -25,7 +25,7 @@ SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
-SERVICES_monitoring := apprise-api ntfy events-watcher service-checks
+SERVICES_monitoring := apprise-api events-watcher service-checks
 SERVICES_pangolin := pangolin gerbil traefik
 
 REQUIRED_SECRETS := \
@@ -35,7 +35,6 @@ REQUIRED_SECRETS := \
 	core/secrets/LDAP_ADMIN_PASSWORD \
 	core/secrets/NEWT_ID.env \
 	core/secrets/NEWT_SECRET.env \
-	monitoring/secrets/ntfy.env \
 	monitoring/apprise/monitoring.yaml \
 	monitoring/secrets/IPTV_UPSTREAM_USER.env \
 	monitoring/secrets/IPTV_UPSTREAM_PASS.env \
