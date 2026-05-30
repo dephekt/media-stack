@@ -20,7 +20,7 @@ REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
 STACKS := core media immich iptv channels monitoring pangolin
 
-SERVICES_core   := newt auth ldap homepage db update-manager
+SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss

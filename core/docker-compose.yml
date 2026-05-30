@@ -189,6 +189,27 @@ services:
     networks:
       - proxy
 
+  agent-kb:
+    image: codeberg.org/stackdrift-images/agent-working-knowledge:edge-mkdocs9.5.49
+    container_name: agent-kb
+    restart: unless-stopped
+    labels:
+      - "pangolin.proxy-resources.agent-kb.name=Agent KB"
+      - "pangolin.proxy-resources.agent-kb.protocol=http"
+      - "pangolin.proxy-resources.agent-kb.full-domain=agent-kb.${DOMAIN}"
+      - "pangolin.proxy-resources.agent-kb.targets[0].method=http"
+      - "pangolin.proxy-resources.agent-kb.targets[0].port=80"
+      # Pangolin target health check (root returns 200 on the static site)
+      - "pangolin.proxy-resources.agent-kb.targets[0].healthcheck.hostname=agent-kb"
+      - "pangolin.proxy-resources.agent-kb.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.agent-kb.targets[0].healthcheck.path=/"
+      # SSO — gated to Member (Greg has this, so he can view linked briefs)
+      - "pangolin.proxy-resources.agent-kb.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.agent-kb.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.agent-kb.auth.auto-login-idp=1"
+    networks:
+      - proxy
+
 volumes:
   keycloak-data:
     external: true
