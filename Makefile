@@ -25,7 +25,7 @@ SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
-SERVICES_monitoring := apprise-api events-watcher service-checks
+SERVICES_monitoring := apprise-api events-watcher service-checks agent-kb-redeploy
 SERVICES_pangolin := pangolin gerbil traefik
 
 REQUIRED_SECRETS := \
@@ -40,6 +40,7 @@ REQUIRED_SECRETS := \
 	monitoring/secrets/IPTV_UPSTREAM_PASS.env \
 	monitoring/secrets/IPTV_LOCAL_USER.env \
 	monitoring/secrets/IPTV_LOCAL_PASS.env \
+	monitoring/secrets/REGISTRY_DEPLOY_KEY.env \
 	pangolin/secrets/pangolin.env \
 	pangolin/config/config.yml
 
@@ -86,7 +87,8 @@ inject-secrets:
 	read_secret "op://Develop/IPTV Upstream/username" "monitoring/secrets/IPTV_UPSTREAM_USER.env"; \
 	read_secret "op://Develop/IPTV Upstream/password" "monitoring/secrets/IPTV_UPSTREAM_PASS.env"; \
 	read_secret "op://Develop/IPTV Local XC/username" "monitoring/secrets/IPTV_LOCAL_USER.env"; \
-	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"
+	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"; \
+	read_secret "op://Personal/Codeberg/Security/Container Registry PAT" "monitoring/secrets/REGISTRY_DEPLOY_KEY.env"
 	@# Render apprise/monitoring.yaml from template + 1Password topic names.
 	@# Topic names stay out of the public repo by living in 1P; the rendered
 	@# file is gitignored. Re-run after rotating topic values in 1Password.
@@ -104,7 +106,7 @@ inject-secrets:
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks $(REMOTE_HOST_media):~/docker/; \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \

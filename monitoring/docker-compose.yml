@@ -97,6 +97,35 @@ services:
       retries: 3
       start_period: 10s
 
+  agent-kb-redeploy:
+    build: ./agent-kb-redeploy
+    container_name: agent-kb-redeploy
+    restart: unless-stopped
+    env_file:
+      - config.env
+    environment:
+      - APPRISE_URL=http://apprise-api:8000/notify/monitoring
+      - REGISTRY_USER=stackdrift
+      - TZ=${TZ}
+    volumes:
+      # rw socket: this is the one container that may pull + recreate.
+      - /run/docker.sock:/var/run/docker.sock
+      # The synced core project dir (compose file + config.env + secrets);
+      # read-only -- the redeploy only reads it to `up -d agent-kb`.
+      - ../core:/core:ro
+    secrets:
+      - REGISTRY_DEPLOY_KEY.env
+    networks:
+      # monitoring -> apprise-api for the redeploy notification; egress to
+      # codeberg.org for the pull. Deliberately NOT on proxy (no inbound).
+      - monitoring
+    healthcheck:
+      test: ["CMD", "pgrep", "supercronic"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   monitoring-state:
 
@@ -106,6 +135,8 @@ networks:
     external: true
 
 secrets:
+  REGISTRY_DEPLOY_KEY.env:
+    file: ./secrets/REGISTRY_DEPLOY_KEY.env
   IPTV_UPSTREAM_USER.env:
     file: ./secrets/IPTV_UPSTREAM_USER.env
   IPTV_UPSTREAM_PASS.env:
