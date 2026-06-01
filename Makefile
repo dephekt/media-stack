@@ -18,7 +18,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin
+STACKS := core media immich iptv channels monitoring pangolin mqtt
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -27,6 +27,7 @@ SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api events-watcher service-checks agent-kb-redeploy
 SERVICES_pangolin := pangolin gerbil traefik
+SERVICES_mqtt    := mosquitto-site mosquitto-central
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -42,7 +43,9 @@ REQUIRED_SECRETS := \
 	monitoring/secrets/IPTV_LOCAL_PASS.env \
 	monitoring/secrets/REGISTRY_DEPLOY_KEY.env \
 	pangolin/secrets/pangolin.env \
-	pangolin/config/config.yml
+	pangolin/config/config.yml \
+	mqtt/secrets/MQTT_EDGE_PASSWORD \
+	mqtt/secrets/MQTT_BRIDGE_PASSWORD
 
 include Makefile.include
 
@@ -103,10 +106,21 @@ inject-secrets:
 	@echo "Secrets injected successfully!"
 	@echo "Note: */secrets/* files are git-ignored and should not be committed"
 
+# Agent-managed secrets live in the 1Password "Agents" vault and are injected via
+# the op-agent service-account wrapper (~/.local/bin/op-agent) — kept separate from
+# inject-secrets, which reads Develop/Personal via Daniel's own 1Password and which
+# the service account cannot access. Safe to run autonomously.
+inject-agent-secrets:
+	@echo "Injecting agent-managed secrets from 1Password (Agents vault)..."
+	@mkdir -p mqtt/secrets
+	@printf '%s' "$$(op-agent read 'op://Agents/MQTT/edge password')" > mqtt/secrets/MQTT_EDGE_PASSWORD
+	@printf '%s' "$$(op-agent read 'op://Agents/MQTT/bridge password')" > mqtt/secrets/MQTT_BRIDGE_PASSWORD
+	@echo "Agent-managed secrets injected (mqtt/secrets/)."
+
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml $(REMOTE_HOST_media):~/docker/; \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \

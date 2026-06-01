@@ -1,0 +1,7 @@
+# Per-site bridge credential — scoped to its own site's subtree (defense in depth:
+# a tenant-isolation bug in the app can't leak cross-site through the bus).
+user bridge-daniel-home
+topic readwrite grow/daniel-home/#
+
+# grow-app (central mode) will be added here later: read grow/#, plus write to
+# the command/set topics.

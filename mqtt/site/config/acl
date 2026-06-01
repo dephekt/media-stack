@@ -1,0 +1,5 @@
+# Edge devices (ESPHome) — scoped to this site's subtree.
+user edge-daniel-home
+topic readwrite grow/daniel-home/#
+
+# grow-app (site mode) will be added here later: readwrite grow/daniel-home/#

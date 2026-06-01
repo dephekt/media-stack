@@ -1,0 +1,56 @@
+services:
+  mosquitto-site:
+    image: eclipse-mosquitto:2.0.20
+    container_name: mosquitto-site
+    restart: unless-stopped
+    entrypoint: ["/mqtt-entrypoint/site-entrypoint.sh"]
+    ports:
+      - "1883:1883"          # LAN-exposed for ESPHome edge devices (NOT Pangolin)
+    volumes:
+      - ./site/config:/mosquitto/config:ro
+      - ./entrypoint:/mqtt-entrypoint:ro
+      - mosquitto-site-data:/mosquitto/data
+    secrets:
+      - MQTT_EDGE_PASSWORD
+      - MQTT_BRIDGE_PASSWORD
+    networks:
+      - mqtt
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -E -t grow/daniel-home/_healthcheck -u edge-daniel-home -P \"$$(cat /run/secrets/MQTT_EDGE_PASSWORD)\" >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 10s
+
+  mosquitto-central:
+    image: eclipse-mosquitto:2.0.20
+    container_name: mosquitto-central
+    restart: unless-stopped
+    entrypoint: ["/mqtt-entrypoint/central-entrypoint.sh"]
+    volumes:
+      - ./central/config:/mosquitto/config:ro
+      - ./entrypoint:/mqtt-entrypoint:ro
+      - mosquitto-central-data:/mosquitto/data
+    secrets:
+      - MQTT_BRIDGE_PASSWORD
+    networks:
+      - mqtt
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -E -t grow/daniel-home/_healthcheck -u bridge-daniel-home -P \"$$(cat /run/secrets/MQTT_BRIDGE_PASSWORD)\" >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mosquitto-site-data:
+  mosquitto-central-data:
+
+networks:
+  mqtt:
+
+secrets:
+  MQTT_EDGE_PASSWORD:
+    file: ./secrets/MQTT_EDGE_PASSWORD
+  MQTT_BRIDGE_PASSWORD:
+    file: ./secrets/MQTT_BRIDGE_PASSWORD

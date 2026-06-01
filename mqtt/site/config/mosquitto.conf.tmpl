@@ -1,0 +1,21 @@
+# Site broker — Daniel's local bus (grow/daniel-home/#). Tier-1/2 autonomy: this
+# broker is the site's bus; it bridges UP to the central aggregator but never
+# depends on it to keep the local site running.
+listener 1883
+allow_anonymous false
+password_file /run/mosquitto/passwd
+acl_file /run/mosquitto/acl
+
+persistence true
+persistence_location /mosquitto/data/
+
+# Durable bridge up to the central aggregator. Loopback over the internal docker
+# network today; becomes a Tailnet hop when this site stack moves to its own host.
+# remote_password is appended at runtime from /run/secrets/MQTT_BRIDGE_PASSWORD.
+connection central-daniel-home
+address mosquitto-central:1883
+remote_username bridge-daniel-home
+cleansession false
+try_private true
+notifications true
+topic grow/daniel-home/# both 0
