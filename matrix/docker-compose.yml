@@ -1,0 +1,58 @@
+name: matrix
+
+services:
+  tuwunel:
+    image: ghcr.io/matrix-construct/tuwunel:latest
+    container_name: tuwunel
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    volumes:
+      - tuwunel-data:/var/lib/tuwunel
+      - ./config/tuwunel.toml:/etc/tuwunel/tuwunel.toml:ro
+    env_file:
+      - config.env
+    environment:
+      - TUWUNEL_CONFIG=/etc/tuwunel/tuwunel.toml
+    labels:
+      - "pangolin.proxy-resources.tuwunel.name=Chat"
+      - "pangolin.proxy-resources.tuwunel.protocol=http"
+      - "pangolin.proxy-resources.tuwunel.full-domain=matrix.${DOMAIN}"
+      - "pangolin.proxy-resources.tuwunel.targets[0].enabled=true"
+      - "pangolin.proxy-resources.tuwunel.targets[0].method=http"
+      - "pangolin.proxy-resources.tuwunel.targets[0].port=8008"
+      - "pangolin.proxy-resources.tuwunel.targets[0].healthcheck.hostname=tuwunel"
+      - "pangolin.proxy-resources.tuwunel.targets[0].healthcheck.port=8008"
+      - "pangolin.proxy-resources.tuwunel.targets[0].healthcheck.path=/_matrix/client/versions"
+      - "pangolin.proxy-resources.tuwunel.auth.sso-enabled=false"
+    networks:
+      - proxy
+    secrets:
+      - tuwunel_oidc_client_secret
+
+  element-web:
+    image: vectorim/element-web:latest
+    container_name: element-web
+    restart: unless-stopped
+    volumes:
+      - ./config/element-web.json:/app/config.json:ro
+    labels:
+      - "pangolin.proxy-resources.element-web.name=Element"
+      - "pangolin.proxy-resources.element-web.protocol=http"
+      - "pangolin.proxy-resources.element-web.full-domain=chat.${DOMAIN}"
+      - "pangolin.proxy-resources.element-web.targets[0].enabled=true"
+      - "pangolin.proxy-resources.element-web.targets[0].method=http"
+      - "pangolin.proxy-resources.element-web.targets[0].port=80"
+    networks:
+      - proxy
+
+volumes:
+  tuwunel-data:
+
+networks:
+  proxy:
+    external: true
+
+secrets:
+  tuwunel_oidc_client_secret:
+    file: ./secrets/TUWUNEL_OIDC_CLIENT_SECRET

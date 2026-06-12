@@ -1,0 +1,32 @@
+[global]
+
+# The server_name is the pretty name of this server. It is used as a
+# suffix for user and room IDs/aliases.
+server_name = "dephekt.net"
+
+# This is the only directory where tuwunel will save its data.
+database_path = "/var/lib/tuwunel"
+
+# The default address tuwunel will listen on.
+# Must be 0.0.0.0 for Docker.
+address = ["0.0.0.0"]
+
+# The port tuwunel will listen on.
+port = 8008
+
+# Disable registration (use OIDC instead)
+allow_registration = false
+
+# Enable federation
+allow_federation = true
+
+# OIDC with Keycloak
+[[global.identity_provider]]
+brand = "keycloak"
+discover = true
+issuer_url = "https://auth.dephekt.net/realms/home"
+client_id = "tuwunel"
+client_secret_file = "/run/secrets/tuwunel_oidc_client_secret"
+callback_url = "https://matrix.dephekt.net/_matrix/client/unstable/login/sso/callback/tuwunel"
+default = true
+trusted = true

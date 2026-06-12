@@ -160,6 +160,18 @@ services:
       - "pangolin.proxy-resources.homepage.auth.sso-enabled=true"
       - "pangolin.proxy-resources.homepage.auth.sso-roles[0]=Member"
       - "pangolin.proxy-resources.homepage.auth.auto-login-idp=1"
+      # Apex domain for .well-known matrix delegation
+      - "pangolin.proxy-resources.homepage-apex.name=Homepage Apex"
+      - "pangolin.proxy-resources.homepage-apex.protocol=http"
+      - "pangolin.proxy-resources.homepage-apex.full-domain=${DOMAIN}"
+      - "pangolin.proxy-resources.homepage-apex.targets[0].method=http"
+      - "pangolin.proxy-resources.homepage-apex.targets[0].port=80"
+      - "pangolin.proxy-resources.homepage-apex.targets[0].healthcheck.hostname=homepage"
+      - "pangolin.proxy-resources.homepage-apex.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.homepage-apex.targets[0].healthcheck.path=/"
+      - "pangolin.proxy-resources.homepage-apex.rules[0].action=allow"
+      - "pangolin.proxy-resources.homepage-apex.rules[0].match=path"
+      - "pangolin.proxy-resources.homepage-apex.rules[0].value=/*"
     networks:
       - proxy
 

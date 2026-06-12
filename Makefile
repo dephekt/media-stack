@@ -18,7 +18,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt
+STACKS := core media immich iptv channels monitoring pangolin mqtt matrix
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -28,6 +28,7 @@ SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api events-watcher service-checks agent-kb-redeploy
 SERVICES_pangolin := pangolin gerbil traefik
 SERVICES_mqtt    := mosquitto-site mosquitto-central
+SERVICES_matrix  := tuwunel element-web
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -45,9 +46,26 @@ REQUIRED_SECRETS := \
 	pangolin/secrets/pangolin.env \
 	pangolin/config/config.yml \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
-	mqtt/secrets/MQTT_BRIDGE_PASSWORD
+	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
+	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET
 
 include Makefile.include
+
+# Check that all required secrets files exist and are non-empty.
+check-secrets:
+	@missing=0; \
+	for f in $(REQUIRED_SECRETS); do \
+		if [ ! -f "$$f" ]; then \
+			echo "Missing secret file: $$f"; missing=1; \
+		elif [ ! -s "$$f" ]; then \
+			echo "Empty secret file: $$f"; missing=1; \
+		fi; \
+	done; \
+	if [ $$missing -ne 0 ]; then \
+		echo "Run 'make inject-secrets' to generate missing secrets."; \
+		exit 1; \
+	fi; \
+	echo "All required secrets present"
 
 # Shell function to safely read secrets from 1Password
 # This avoids blank secrets being written and synced to the docker host
@@ -79,7 +97,7 @@ monitoring-config-load:
 
 inject-secrets:
 	@echo "Injecting secrets from 1Password..."
-	@mkdir -p core/secrets monitoring/secrets
+	@mkdir -p core/secrets monitoring/secrets matrix/secrets
 	@$(READ_SECRET_FN); \
 	read_secret "op://Develop/Keycloak Admin/password" "core/secrets/KEYCLOAK_ADMIN_PASSWORD.env"; \
 	read_secret "op://Develop/Keycloak DB/password" "core/secrets/DB_PASSWORD.env"; \
@@ -91,7 +109,8 @@ inject-secrets:
 	read_secret "op://Develop/IPTV Upstream/password" "monitoring/secrets/IPTV_UPSTREAM_PASS.env"; \
 	read_secret "op://Develop/IPTV Local XC/username" "monitoring/secrets/IPTV_LOCAL_USER.env"; \
 	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"; \
-	read_secret "op://Personal/Codeberg/Security/Container Registry PAT" "monitoring/secrets/REGISTRY_DEPLOY_KEY.env"
+	read_secret "op://Personal/Codeberg/Security/Container Registry PAT" "monitoring/secrets/REGISTRY_DEPLOY_KEY.env"; \
+	read_secret "op://Develop/Matrix/client secret" "matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET"
 	@# Render apprise/monitoring.yaml from template + 1Password topic names.
 	@# Topic names stay out of the public repo by living in 1P; the rendered
 	@# file is gitignored. Re-run after rotating topic values in 1Password.
@@ -120,7 +139,7 @@ inject-agent-secrets:
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml matrix/secrets matrix/config.env matrix/docker-compose.yml matrix/config/tuwunel.toml matrix/config/element-web.json $(REMOTE_HOST_media):~/docker/; \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \
