@@ -31,3 +31,6 @@ pangolin/config/GeoLite2-Country.mmdb
 pangolin/config/logs/
 pangolin/config/traefik/logs/
 pangolin/config/openapi.yaml
+.playwright-cli/
+.playwright-mcp/
+
