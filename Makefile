@@ -3,6 +3,11 @@ DOCKER_CONTEXT=media-server
 # Per-stack context overrides. STACK_CONTEXT helper in Makefile.include picks these up.
 CONTEXT_pangolin=pangolin-edge
 
+# Stacks deployed from synced files on the media server need compose paths to
+# resolve against the remote project directory when using the SSH docker context.
+PROJECT_DIR_mqtt=/home/daniel/docker/mqtt
+PROJECT_DIR_grow=/home/daniel/docker/grow
+
 # Per-host helpers for sync-secrets split (one rsync per remote).
 CONTEXT_HOST_media=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST_media=$(shell echo $(CONTEXT_HOST_media) | sed 's|^ssh://||')
@@ -18,7 +23,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt matrix
+STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -28,6 +33,7 @@ SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api events-watcher service-checks agent-kb-redeploy
 SERVICES_pangolin := pangolin gerbil traefik
 SERVICES_mqtt    := mosquitto-site mosquitto-central
+SERVICES_grow    := grow-app-site
 SERVICES_matrix  := tuwunel element-web
 
 REQUIRED_SECRETS := \
@@ -46,6 +52,7 @@ REQUIRED_SECRETS := \
 	pangolin/secrets/pangolin.env \
 	pangolin/config/config.yml \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
+	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
 	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET
 
@@ -132,14 +139,30 @@ inject-secrets:
 inject-agent-secrets:
 	@echo "Injecting agent-managed secrets from 1Password (Agents vault)..."
 	@mkdir -p mqtt/secrets
-	@printf '%s' "$$(op-agent read 'op://Agents/MQTT/edge password')" > mqtt/secrets/MQTT_EDGE_PASSWORD
-	@printf '%s' "$$(op-agent read 'op://Agents/MQTT/bridge password')" > mqtt/secrets/MQTT_BRIDGE_PASSWORD
+	@set -eu; \
+	read_agent_secret() { \
+		local op_ref="$$1"; \
+		local dest_file="$$2"; \
+		local secret_val; \
+		if ! secret_val=$$(op-agent read "$$op_ref"); then \
+			echo "ERROR: Failed to read from 1Password: $$op_ref"; \
+			exit 1; \
+		fi; \
+		if [ -z "$$secret_val" ]; then \
+			echo "ERROR: Empty secret retrieved from: $$op_ref"; \
+			exit 1; \
+		fi; \
+		printf '%s' "$$secret_val" > "$$dest_file"; \
+	}; \
+	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
+	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
+	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD
 	@echo "Agent-managed secrets injected (mqtt/secrets/)."
 
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml matrix/secrets matrix/config.env matrix/docker-compose.yml matrix/config/tuwunel.toml matrix/config/element-web.json $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml grow/docker-compose.yml matrix/secrets matrix/config.env matrix/docker-compose.yml matrix/config/tuwunel.toml matrix/config/element-web.json $(REMOTE_HOST_media):~/docker/; \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \

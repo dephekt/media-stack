@@ -15,6 +15,8 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`.
 - **IPTVBoss** (`iptv/`): IPTV management and XC server.
 - **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host).
+- **MQTT** (`mqtt/`): Daniel's grow site broker plus central aggregator. The `mqtt` network is explicitly named `grow-mqtt` so the separate `grow/` stack can attach.
+- **Grow App** (`grow/`): LAN-local grow-app site HMI for Daniel's grow. No Pangolin or Keycloak in Phase 1; exposed directly on host port `3080`.
 
 ### Monitoring & alerting (`monitoring/`)
 Three local containers + two SaaS witnesses; all paths land in Discord (and UptimeRobot also sends mobile push). See `monitoring/README.md` for the routing matrix and the constellation-of-alerts diagnostic pattern.
@@ -44,6 +46,8 @@ Three local containers + two SaaS witnesses; all paths land in Discord (and Upti
 ├─ channels/                     # channels-dvr (host network)
 ├─ monitoring/                   # apprise-api, events-watcher, service-checks (+ SaaS: UptimeRobot, Healthchecks.io)
 ├─ pangolin/                     # pangolin server + gerbil + traefik; deploys to pangolin-edge context
+├─ mqtt/                         # grow-control site broker + central aggregator
+├─ grow/                         # grow-app site-mode HMI
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
 ```
@@ -61,7 +65,7 @@ Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional 
 **Always use the Makefile** — never call `docker compose` directly. Direct invocations bypass the env exports the Makefile provides; in particular `${DOMAIN}` would render empty in Pangolin labels and break resource registration. Every deploy goes through `make`.
 
 ### How targets are generated
-- `STACKS := core media immich iptv channels monitoring pangolin` — list of every stack.
+- `STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix` — list of every stack.
 - `SERVICES_<stack> := svc1 svc2 ...` — per-stack service list, used to auto-generate per-service targets.
 - `Makefile.include` evaluates `STACK_RULES` and `SERVICE_RULES` over those lists to emit `<stack>-up/-down/-restart/-logs` and `<svc>-up/-restart/-logs/-stop/-start` for every name. When a service name matches its stack name (e.g. `pangolin`/`pangolin`), the SERVICE_RULES generation is skipped for that service so `<name>-up` resolves to the whole-stack rule, not just one service.
 - Per-stack Docker context: `STACK_CONTEXT(stack) = $(or $(CONTEXT_$(stack)),$(DOCKER_CONTEXT))`. Default is `media-server`; override per stack via `CONTEXT_<stack>=<context>`. Currently `CONTEXT_pangolin=pangolin-edge` routes pangolin's deploys to the edge VPS while every other stack lands on `media-server`.

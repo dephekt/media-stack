@@ -65,6 +65,8 @@ I group sets of services into separate Docker compose projects in this repo:
 - channels: Channels DVR (`fancybits/channels-dvr`) — host networking; config and recordings under `/mnt/data/channels-dvr/` on the Docker host. Start with `make channels-up` or `make up` ([`channels/docker-compose.yml`](channels/docker-compose.yml)).
 - monitoring: notification + probe machinery (apprise-api + events-watcher + service-checks) plus two SaaS witnesses (UptimeRobot for external HTTP probes; Healthchecks.io for dead-man checks). All paths land in Discord; UptimeRobot also sends mobile push. Public status page at [status.dephekt.net](https://status.dephekt.net/). See [`monitoring/README.md`](monitoring/README.md).
 - pangolin: the Pangolin reverse-proxy / control-plane itself, deployed via a separate Docker context (`pangolin-edge`) to the edge VPS. The Makefile auto-routes `pangolin-up` etc. to the right host. See [`pangolin/README.md`](pangolin/README.md).
+- mqtt: Mosquitto site broker + central aggregator for the grow-control MQTT spine. See [`mqtt/README.md`](mqtt/README.md).
+- grow: Daniel's LAN-local grow-app site HMI on port `3080`. See [`grow/README.md`](grow/README.md).
 - matrix: Tuwunel homeserver with Element Web for family/friends chat. Tuwunel uses built-in RocksDB (no PostgreSQL). Exposed via Pangolin at `matrix.${DOMAIN}` (homeserver) and `chat.${DOMAIN}` (Element Web). See [`matrix/README.md`](matrix/README.md).
 
 ## How it works (one minute)

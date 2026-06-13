@@ -1,9 +1,10 @@
 # Per-stack context lookup; falls back to DOCKER_CONTEXT (default for most stacks).
 # Set CONTEXT_<stack> in Makefile to override per-stack.
 STACK_CONTEXT = $(or $(CONTEXT_$(1)),$(DOCKER_CONTEXT))
+STACK_PROJECT_DIR = $(PROJECT_DIR_$(1))
 
 # STACK_CMD passes --context explicitly so per-stack overrides take effect.
-STACK_CMD = docker --context $(call STACK_CONTEXT,$(1)) compose -p $(1) -f $(1)/docker-compose.yml
+STACK_CMD = docker --context $(call STACK_CONTEXT,$(1)) compose $(if $(call STACK_PROJECT_DIR,$(1)),--project-directory $(call STACK_PROJECT_DIR,$(1))) -p $(1) -f $(1)/docker-compose.yml
 
 # COMMON_RULES: Generates up, restart, logs
 # Args:

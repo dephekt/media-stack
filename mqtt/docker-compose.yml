@@ -12,6 +12,7 @@ services:
       - mosquitto-site-data:/mosquitto/data
     secrets:
       - MQTT_EDGE_PASSWORD
+      - MQTT_GROW_APP_SITE_PASSWORD
       - MQTT_BRIDGE_PASSWORD
     networks:
       - mqtt
@@ -48,9 +49,12 @@ volumes:
 
 networks:
   mqtt:
+    name: grow-mqtt
 
 secrets:
   MQTT_EDGE_PASSWORD:
     file: ./secrets/MQTT_EDGE_PASSWORD
+  MQTT_GROW_APP_SITE_PASSWORD:
+    file: ./secrets/MQTT_GROW_APP_SITE_PASSWORD
   MQTT_BRIDGE_PASSWORD:
     file: ./secrets/MQTT_BRIDGE_PASSWORD

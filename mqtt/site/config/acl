@@ -2,4 +2,6 @@
 user edge-daniel-home
 topic readwrite grow/daniel-home/#
 
-# grow-app (site mode) will be added here later: readwrite grow/daniel-home/#
+# Site-mode grow-app — LAN HMI/API for Daniel's local site only.
+user grow-app-site-daniel-home
+topic readwrite grow/daniel-home/#
