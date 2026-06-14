@@ -1,0 +1,108 @@
+services:
+  kanban-router:
+    build: ./router
+    image: kanban-router:local
+    container_name: kanban-router
+    restart: unless-stopped
+    ports:
+      - "8097:80"
+    depends_on:
+      kanboard:
+        condition: service_healthy
+      kanban-ref:
+        condition: service_started
+    labels:
+      - "pangolin.proxy-resources.kanban.name=Kanban"
+      - "pangolin.proxy-resources.kanban.protocol=http"
+      - "pangolin.proxy-resources.kanban.full-domain=kanban.ai.${DOMAIN}"
+      - "pangolin.proxy-resources.kanban.targets[0].method=http"
+      - "pangolin.proxy-resources.kanban.targets[0].port=80"
+      - "pangolin.proxy-resources.kanban.targets[0].healthcheck.hostname=kanban-router"
+      - "pangolin.proxy-resources.kanban.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.kanban.targets[0].healthcheck.path=/healthcheck.php"
+      - "pangolin.proxy-resources.kanban.auth.sso-enabled=true"
+      - "pangolin.proxy-resources.kanban.auth.sso-roles[0]=Member"
+      - "pangolin.proxy-resources.kanban.auth.auto-login-idp=1"
+    networks:
+      - kanban
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/healthcheck.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  kanboard:
+    image: kanboard/kanboard:v1.2.51
+    container_name: kanboard
+    restart: unless-stopped
+    env_file:
+      - ./secrets/kanboard.env
+    environment:
+      - APPLICATION_URL=https://kanban.ai.dephekt.net
+      - LOG_DRIVER=stdout
+      - PLUGIN_INSTALLER=false
+      - ENABLE_HSTS=false
+      - TRUSTED_PROXY_HEADERS=HTTP_X_FORWARDED_FOR,HTTP_X_FORWARDED_PROTO,HTTP_X_FORWARDED_HOST
+      - TRUSTED_PROXY_NETWORKS=0.0.0.0/0,::/0
+    volumes:
+      - kanboard-data:/var/www/app/data
+      - kanboard-plugins:/var/www/app/plugins
+    networks:
+      - kanban
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/healthcheck.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  kanboard-admin-init:
+    image: kanboard/kanboard:v1.2.51
+    container_name: kanboard-admin-init
+    restart: "no"
+    env_file:
+      - ./secrets/kanboard.env
+    volumes:
+      - kanboard-data:/var/www/app/data
+      - kanboard-plugins:/var/www/app/plugins
+    depends_on:
+      kanboard:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      - |
+        cd /var/www/app
+        printf '%s\n%s\n' "$$KANBOARD_ADMIN_PASSWORD" "$$KANBOARD_ADMIN_PASSWORD" | php cli user:reset-password admin
+    networks:
+      - kanban
+
+  kanban-ref:
+    build: ./ref
+    image: kanban-ref:local
+    container_name: kanban-ref
+    restart: unless-stopped
+    env_file:
+      - ./secrets/kanboard.env
+    environment:
+      - KANBOARD_URL=http://kanboard
+      - KANBOARD_PROJECTS_FILE=/app/projects.yaml
+    command: ["python", "/app/kanban_ref.py"]
+    networks:
+      - kanban
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kanboard-data:
+  kanboard-plugins:
+
+networks:
+  kanban:
+  proxy:
+    external: true

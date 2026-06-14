@@ -23,7 +23,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot
+STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -36,6 +36,7 @@ SERVICES_mqtt    := mosquitto-site mosquitto-central
 SERVICES_grow    := grow-app-site
 SERVICES_matrix  := tuwunel element-web
 SERVICES_penpot  := penpot-frontend penpot-backend penpot-mcp penpot-exporter penpot-postgres penpot-valkey
+SERVICES_kanban  := kanban-router kanboard kanboard-admin-init kanboard-oauth-init kanban-ref
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -56,7 +57,8 @@ REQUIRED_SECRETS := \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
 	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
-	penpot/secrets/penpot.env
+	penpot/secrets/penpot.env \
+	kanban/secrets/kanboard.env
 
 MEDIA_SYNC_REQUIRED := \
 	core/secrets \
@@ -82,7 +84,13 @@ MEDIA_SYNC_REQUIRED := \
 	matrix/config/tuwunel.toml \
 	matrix/config/element-web.json \
 	penpot/secrets \
-	penpot/docker-compose.yml
+	penpot/docker-compose.yml \
+	kanban/secrets \
+	kanban/router \
+	kanban/ref \
+	kanban/kanboard \
+	kanban/keycloak \
+	kanban/docker-compose.yml
 
 MEDIA_SYNC_OPTIONAL := \
 	keycloak-import/
@@ -193,7 +201,7 @@ inject-secrets:
 # the service account cannot access. Safe to run autonomously.
 inject-agent-secrets:
 	@echo "Injecting agent-managed secrets from 1Password (Agents vault)..."
-	@mkdir -p mqtt/secrets
+	@mkdir -p mqtt/secrets kanban/secrets
 	@set -eu; \
 	read_agent_secret() { \
 		local op_ref="$$1"; \
@@ -211,8 +219,20 @@ inject-agent-secrets:
 	}; \
 	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
-	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD
-	@echo "Agent-managed secrets injected (mqtt/secrets/)."
+	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD; \
+	admin_password=$$(op-agent read 'op://Agents/Kanboard/password'); \
+	api_token=$$(op-agent read 'op://Agents/Kanboard/api token'); \
+	oauth_client_secret=$$(op-agent read 'op://Agents/Kanboard/oauth client secret'); \
+	if [ -z "$$admin_password" ] || [ -z "$$api_token" ] || [ -z "$$oauth_client_secret" ]; then \
+		echo "ERROR: Empty Kanboard secret from 1Password"; \
+		exit 1; \
+	fi; \
+	{ \
+		printf 'KANBOARD_ADMIN_PASSWORD=%s\n' "$$admin_password"; \
+		printf 'API_AUTHENTICATION_TOKEN=%s\n' "$$api_token"; \
+		printf 'KANBOARD_OAUTH2_CLIENT_SECRET=%s\n' "$$oauth_client_secret"; \
+	} > kanban/secrets/kanboard.env
+	@echo "Agent-managed secrets injected (mqtt/secrets/, kanban/secrets/)."
 
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
