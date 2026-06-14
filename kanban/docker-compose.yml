@@ -20,9 +20,7 @@ services:
       - "pangolin.proxy-resources.kanban.targets[0].healthcheck.hostname=kanban-router"
       - "pangolin.proxy-resources.kanban.targets[0].healthcheck.port=80"
       - "pangolin.proxy-resources.kanban.targets[0].healthcheck.path=/healthcheck.php"
-      - "pangolin.proxy-resources.kanban.auth.sso-enabled=true"
-      - "pangolin.proxy-resources.kanban.auth.sso-roles[0]=Member"
-      - "pangolin.proxy-resources.kanban.auth.auto-login-idp=1"
+      - "pangolin.proxy-resources.kanban.auth.sso-enabled=false"
     networks:
       - kanban
       - proxy
@@ -34,13 +32,13 @@ services:
       start_period: 10s
 
   kanboard:
-    image: kanboard/kanboard:v1.2.51
+    build: ./kanboard
+    image: kanboard-oauth2:local
     container_name: kanboard
     restart: unless-stopped
     env_file:
       - ./secrets/kanboard.env
     environment:
-      - APPLICATION_URL=https://kanban.ai.dephekt.net
       - LOG_DRIVER=stdout
       - PLUGIN_INSTALLER=false
       - ENABLE_HSTS=false
@@ -48,7 +46,6 @@ services:
       - TRUSTED_PROXY_NETWORKS=0.0.0.0/0,::/0
     volumes:
       - kanboard-data:/var/www/app/data
-      - kanboard-plugins:/var/www/app/plugins
     networks:
       - kanban
     healthcheck:
@@ -59,14 +56,13 @@ services:
       start_period: 30s
 
   kanboard-admin-init:
-    image: kanboard/kanboard:v1.2.51
+    image: kanboard-oauth2:local
     container_name: kanboard-admin-init
     restart: "no"
     env_file:
       - ./secrets/kanboard.env
     volumes:
       - kanboard-data:/var/www/app/data
-      - kanboard-plugins:/var/www/app/plugins
     depends_on:
       kanboard:
         condition: service_healthy
@@ -75,6 +71,28 @@ services:
       - |
         cd /var/www/app
         printf '%s\n%s\n' "$$KANBOARD_ADMIN_PASSWORD" "$$KANBOARD_ADMIN_PASSWORD" | php cli user:reset-password admin
+    networks:
+      - kanban
+
+  kanboard-oauth-init:
+    image: kanboard-oauth2:local
+    container_name: kanboard-oauth-init
+    restart: "no"
+    env_file:
+      - ./secrets/kanboard.env
+    environment:
+      - KANBOARD_OAUTH2_CLIENT_ID=kanboard
+      - KANBOARD_OAUTH2_ISSUER=https://auth.dephekt.net/realms/home
+      - KANBOARD_OAUTH2_GROUP_CLAIM=kanboard_roles
+      - KANBOARD_OAUTH2_GROUP_FILTER=kanboard-users,kanboard-admins
+      - KANBOARD_OAUTH2_LOGIN_TEXT=Login with Keycloak
+      - KANBOARD_APPLICATION_URL=https://kanban.ai.dephekt.net/
+    volumes:
+      - kanboard-data:/var/www/app/data
+    depends_on:
+      kanboard:
+        condition: service_healthy
+    entrypoint: ["php", "/opt/kanboard/configure-oauth.php"]
     networks:
       - kanban
 
@@ -100,7 +118,6 @@ services:
 
 volumes:
   kanboard-data:
-  kanboard-plugins:
 
 networks:
   kanban:

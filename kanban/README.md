@@ -5,7 +5,10 @@ Shared Kanboard deployment for agent-driven project tracking.
 ## Service
 
 - **kanban-router** - LAN and Pangolin-facing front door.
-- **kanboard** - Kanboard application, pinned to `kanboard/kanboard:v1.2.51`.
+- **kanboard** - Kanboard application, pinned to `kanboard/kanboard:v1.2.51`
+  with the OAuth2 plugin baked into a local image.
+- **kanboard-oauth-init** - one-shot container that writes Keycloak OAuth2
+  settings into the Kanboard database.
 - **kanban-ref** - prefix-aware redirector for links such as `/i/HGC-001`.
 
 Public URL:
@@ -20,9 +23,38 @@ LAN fallback URL:
 http://containers.home.arpa:8097
 ```
 
-The public route is registered through Pangolin/Newt. The LAN route is a direct
-host port on the media-server Docker context, so it remains usable when the
-internet/Pangolin path is down.
+The public route is registered through Pangolin/Newt, but Pangolin SSO is
+disabled for this resource. Kanboard login is handled by Keycloak OIDC in the
+`home` realm. The LAN route is a direct host port on the media-server Docker
+context, so it remains usable when the internet/Pangolin path is down.
+
+## Authentication
+
+Keycloak owns login eligibility for the `kanboard` OIDC client:
+
+- client roles: `kanboard-user`, `kanboard-admin`
+- assignment groups: `kanboard-users`, `kanboard-admins`
+- the custom `kanboard-browser` flow denies users without
+  `kanboard.kanboard-user`
+- the `kanboard_roles` claim exposes Kanboard-specific group membership to the
+  Kanboard OAuth2 plugin
+
+Kanboard owns application roles. OIDC-created users start as normal Kanboard
+users; promote administrators inside Kanboard. Keep the local `admin` user as a
+break-glass account for local/offline access.
+
+Kanboard stores one application URL, so the OIDC callback is the public
+`https://kanban.ai.dephekt.net/oauth/callback`. The LAN route remains available
+for direct Kanboard access and the local `admin` fallback.
+
+Configure the Keycloak side from this checkout:
+
+```bash
+kanban/keycloak/configure-kanboard-client.sh
+```
+
+The script is idempotent and stores the generated client secret in
+`op://Agents/Kanboard/oauth client secret`.
 
 ## Secrets
 
@@ -32,6 +64,8 @@ Required fields:
 
 - `password` - admin web password.
 - `api token` - Kanboard JSON-RPC token.
+- `oauth client secret` - Keycloak OIDC client secret for the `kanboard`
+  client.
 
 The API username is Kanboard's built-in `jsonrpc` user.
 
