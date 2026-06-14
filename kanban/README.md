@@ -43,6 +43,9 @@ Kanboard owns application roles. OIDC-created users start as normal Kanboard
 users; promote administrators inside Kanboard. Keep the local `admin` user as a
 break-glass account for local/offline access.
 
+The Keycloak client intentionally leaves PKCE disabled because the Kanboard
+OAuth2 plugin used by this deployment does not send `code_challenge` parameters.
+
 Kanboard stores one application URL, so the OIDC callback is the public
 `https://kanban.ai.dephekt.net/oauth/callback`. The LAN route remains available
 for direct Kanboard access and the local `admin` fallback.

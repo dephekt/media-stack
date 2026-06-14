@@ -119,8 +119,7 @@ ensure_client() {
       -s "baseUrl=$PUBLIC_URL/" \
       -s "adminUrl=$PUBLIC_URL/" \
       -s "redirectUris=[\"$PUBLIC_URL/oauth/callback*\",\"$LAN_URL/oauth/callback*\"]" \
-      -s "webOrigins=[\"$PUBLIC_URL\",\"$LAN_URL\"]" \
-      -s 'attributes={"pkce.code.challenge.method":"S256"}' >/dev/null
+      -s "webOrigins=[\"$PUBLIC_URL\",\"$LAN_URL\"]" >/dev/null
   else
     kc update "clients/$id" -r "$REALM" \
       -s "name=$CLIENT_NAME" \
@@ -135,9 +134,21 @@ ensure_client() {
       -s "baseUrl=$PUBLIC_URL/" \
       -s "adminUrl=$PUBLIC_URL/" \
       -s "redirectUris=[\"$PUBLIC_URL/oauth/callback*\",\"$LAN_URL/oauth/callback*\"]" \
-      -s "webOrigins=[\"$PUBLIC_URL\",\"$LAN_URL\"]" \
-      -s 'attributes={"pkce.code.challenge.method":"S256"}' >/dev/null
+      -s "webOrigins=[\"$PUBLIC_URL\",\"$LAN_URL\"]" >/dev/null
   fi
+}
+
+disable_client_pkce() {
+  local client_id="$1"
+  local attrs
+  attrs="$(
+    kc get "clients/$client_id" -r "$REALM" --fields attributes |
+      jq -c '(.attributes // {}) + {"pkce.code.challenge.method": ""}'
+  )"
+
+  # Keycloak removes the stored PKCE row when this value is empty. Deleting the
+  # key from the JSON representation can leave a stale effective DB row behind.
+  kc update "clients/$client_id" -r "$REALM" -s "attributes=$attrs" >/dev/null
 }
 
 ensure_client_role() {
@@ -372,6 +383,7 @@ if [ -z "$client_id" ]; then
   printf 'Unable to find or create Keycloak client: %s\n' "$CLIENT_ID" >&2
   exit 1
 fi
+disable_client_pkce "$client_id"
 
 ensure_client_role "$client_id" "$USER_ROLE"
 ensure_client_role "$client_id" "$ADMIN_ROLE"
