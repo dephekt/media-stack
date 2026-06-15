@@ -30,17 +30,13 @@ context, so it remains usable when the internet/Pangolin path is down.
 
 ## Authentication
 
-Keycloak owns login eligibility for the `kanboard` OIDC client:
-
-- client roles: `kanboard-user`, `kanboard-admin`
-- assignment groups: `kanboard-users`, `kanboard-admins`
-- the custom `kanboard-browser` flow denies users without
-  `kanboard.kanboard-user`
-- the `kanboard_roles` claim exposes Kanboard-specific group membership to the
-  Kanboard OAuth2 plugin
+Keycloak owns login eligibility for the `kanboard` OIDC client. Users must be
+members of the Keycloak group `kanboard`, which maps to the client role
+`kanboard.kanboard` used by the custom `kanboard-browser` login gate.
 
 Kanboard owns application roles. OIDC-created users start as normal Kanboard
-users; promote administrators inside Kanboard. Keep the local `admin` user as a
+users; promote managers and administrators inside Kanboard. Keycloak groups are
+not synced into Kanboard for authorization. Keep the local `admin` user as a
 break-glass account for local/offline access.
 
 The Keycloak client intentionally leaves PKCE disabled because the Kanboard

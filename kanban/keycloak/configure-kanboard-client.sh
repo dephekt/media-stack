@@ -12,11 +12,12 @@ FLOW_ALIAS="${KANBOARD_AUTH_FLOW:-kanboard-browser}"
 GATE_ALIAS="${KANBOARD_AUTH_GATE:-Kanboard role gate}"
 FORM_FLOW_ALIAS="${KANBOARD_FORM_FLOW:-${FLOW_ALIAS} forms}"
 FORM_GATE_ALIAS="${KANBOARD_FORM_GATE:-Kanboard form role gate}"
-USER_ROLE="${KANBOARD_USER_ROLE:-kanboard-user}"
-ADMIN_ROLE="${KANBOARD_ADMIN_ROLE:-kanboard-admin}"
-USER_GROUP="${KANBOARD_USER_GROUP:-kanboard-users}"
-ADMIN_GROUP="${KANBOARD_ADMIN_GROUP:-kanboard-admins}"
-SOURCE_ADMIN_GROUP="${KANBOARD_SOURCE_ADMIN_GROUP:-admin}"
+ACCESS_ROLE="${KANBOARD_ACCESS_ROLE:-kanboard}"
+ACCESS_GROUP="${KANBOARD_ACCESS_GROUP:-kanboard}"
+LEGACY_USER_ROLE="${KANBOARD_LEGACY_USER_ROLE:-kanboard-user}"
+LEGACY_ADMIN_ROLE="${KANBOARD_LEGACY_ADMIN_ROLE:-kanboard-admin}"
+LEGACY_USER_GROUP="${KANBOARD_LEGACY_USER_GROUP:-kanboard-users}"
+LEGACY_ADMIN_GROUP="${KANBOARD_LEGACY_ADMIN_GROUP:-kanboard-admins}"
 OP_ITEM="${KANBOARD_OP_ITEM:-Kanboard}"
 OP_VAULT="${KANBOARD_OP_VAULT:-Agents}"
 OP_SECRET_FIELD="${KANBOARD_OP_SECRET_FIELD:-oauth client secret}"
@@ -67,19 +68,6 @@ urlencode() {
 
 flow_executions_endpoint() {
   printf 'authentication/flows/%s/executions' "$(urlencode "$1")"
-}
-
-remote_json_file() {
-  local body="$1"
-  local path="/tmp/kcadm-kanboard-body-$$-${RANDOM}.json"
-  printf '%s' "$body" |
-    docker --context "$DOCKER_CONTEXT" exec -i "$AUTH_CONTAINER" sh -c "cat > '$path'"
-  printf '%s\n' "$path"
-}
-
-remote_rm() {
-  local path="$1"
-  docker --context "$DOCKER_CONTEXT" exec "$AUTH_CONTAINER" rm -f "$path" >/dev/null 2>&1 || true
 }
 
 client_uuid() {
@@ -178,6 +166,16 @@ assign_group_role() {
   kc add-roles -r "$REALM" --gid "$group_id" --cclientid "$CLIENT_ID" --rolename "$role" >/dev/null 2>&1 || true
 }
 
+add_user_to_group() {
+  local user_id="$1"
+  local group_id="$2"
+  kc update "users/$user_id/groups/$group_id" -r "$REALM" \
+    -s "realm=$REALM" \
+    -s "userId=$user_id" \
+    -s "groupId=$group_id" \
+    -n >/dev/null
+}
+
 set_execution_requirement() {
   local flow_alias="$1"
   local execution_id="$2"
@@ -188,12 +186,12 @@ set_execution_requirement() {
     -n >/dev/null
 }
 
-copy_source_admin_members() {
-  local target_group_id="$1"
+copy_group_members() {
+  local source_group="$1"
+  local target_group_id="$2"
   local source_group_id
-  source_group_id="$(group_id_by_name "$SOURCE_ADMIN_GROUP")"
+  source_group_id="$(group_id_by_name "$source_group")"
   if [ -z "$source_group_id" ]; then
-    printf 'Source admin group not found, skipping member copy: %s\n' "$SOURCE_ADMIN_GROUP" >&2
     return
   fi
 
@@ -201,34 +199,43 @@ copy_source_admin_members() {
     jq -r '.[].id' |
     while IFS= read -r user_id; do
       [ -n "$user_id" ] || continue
-      kc update "users/$user_id/groups/$target_group_id" -r "$REALM" \
-        -s "realm=$REALM" \
-        -s "userId=$user_id" \
-        -s "groupId=$target_group_id" \
-        -n >/dev/null
+      add_user_to_group "$user_id" "$target_group_id"
     done
 }
 
-ensure_group_mapper() {
+migrate_legacy_group_members() {
+  local target_group_id="$1"
+  copy_group_members "$LEGACY_USER_GROUP" "$target_group_id"
+  copy_group_members "$LEGACY_ADMIN_GROUP" "$target_group_id"
+}
+
+remove_group_by_name() {
+  local group="$1"
+  local id
+  id="$(group_id_by_name "$group")"
+  if [ -n "$id" ]; then
+    kc delete "groups/$id" -r "$REALM" >/dev/null
+  fi
+}
+
+remove_client_role() {
   local client_id="$1"
-  local mapper_body
-  mapper_body="$(
-    jq -nc '{
-      name: "kanboard_roles",
-      protocol: "openid-connect",
-      protocolMapper: "oidc-group-membership-mapper",
-      consentRequired: false,
-      config: {
-        "full.path": "false",
-        "claim.name": "kanboard_roles",
-        "id.token.claim": "true",
-        "access.token.claim": "true",
-        "userinfo.token.claim": "true",
-        "introspection.token.claim": "true",
-        "lightweight.claim": "false"
-      }
-    }'
-  )"
+  local role="$2"
+  if kc get "clients/$client_id/roles/$role" -r "$REALM" >/dev/null 2>&1; then
+    kc delete "clients/$client_id/roles/$role" -r "$REALM" >/dev/null
+  fi
+}
+
+remove_legacy_access_model() {
+  local client_id="$1"
+  remove_group_by_name "$LEGACY_USER_GROUP"
+  remove_group_by_name "$LEGACY_ADMIN_GROUP"
+  remove_client_role "$client_id" "$LEGACY_USER_ROLE"
+  remove_client_role "$client_id" "$LEGACY_ADMIN_ROLE"
+}
+
+remove_group_mapper() {
+  local client_id="$1"
   local mapper_id
   local mapper_json
   mapper_json="$(kc get "clients/$client_id/protocol-mappers/models" -r "$REALM")"
@@ -239,25 +246,8 @@ ensure_group_mapper() {
   )"
 
   if [ -n "$mapper_id" ]; then
-    if printf '%s' "$mapper_json" | jq -e '
-      .[] | select(.id == "'"$mapper_id"'") |
-      .protocolMapper == "oidc-group-membership-mapper" and
-      .config["full.path"] == "false" and
-      .config["claim.name"] == "kanboard_roles" and
-      .config["id.token.claim"] == "true" and
-      .config["access.token.claim"] == "true" and
-      .config["userinfo.token.claim"] == "true" and
-      .config["introspection.token.claim"] == "true"
-    ' >/dev/null; then
-      return
-    fi
     kc delete "clients/$client_id/protocol-mappers/models/$mapper_id" -r "$REALM" >/dev/null
   fi
-
-  local mapper_file
-  mapper_file="$(remote_json_file "$mapper_body")"
-  kc create "clients/$client_id/protocol-mappers/models" -r "$REALM" -f "$mapper_file" >/dev/null
-  remote_rm "$mapper_file"
 }
 
 ensure_auth_flow() {
@@ -300,7 +290,7 @@ ensure_gate_flow() {
       -s "alias=$gate_alias" \
       -s type=basic-flow \
       -s provider=basic-flow \
-      -s "description=Deny users without the $CLIENT_ID.$USER_ROLE client role" >/dev/null
+      -s "description=Deny users without the $CLIENT_ID.$ACCESS_ROLE client role" >/dev/null
     gate_exec_id="$(
       kc get "$(flow_executions_endpoint "$parent_flow_alias")" -r "$REALM" |
         jq -r --arg alias "$gate_alias" '.[] | select(.displayName == $alias) | .id' |
@@ -310,8 +300,8 @@ ensure_gate_flow() {
 
   set_execution_requirement "$parent_flow_alias" "$gate_exec_id" CONDITIONAL
 
-  ensure_flow_execution "$gate_alias" conditional-user-role REQUIRED "Require $CLIENT_ID.$USER_ROLE for Kanboard forms" \
-    "condUserRole=$CLIENT_ID.$USER_ROLE" "negate=true"
+  ensure_flow_execution "$gate_alias" conditional-user-role REQUIRED "Require $CLIENT_ID.$ACCESS_ROLE for Kanboard forms" \
+    "condUserRole=$CLIENT_ID.$ACCESS_ROLE" "negate=true"
   ensure_flow_execution "$gate_alias" deny-access-authenticator REQUIRED "Deny non-Kanboard users for Kanboard forms" \
     'denyErrorMessage=kanboard-access-required'
 }
@@ -385,19 +375,15 @@ if [ -z "$client_id" ]; then
 fi
 disable_client_pkce "$client_id"
 
-ensure_client_role "$client_id" "$USER_ROLE"
-ensure_client_role "$client_id" "$ADMIN_ROLE"
+ensure_client_role "$client_id" "$ACCESS_ROLE"
 
-user_group_id="$(ensure_group "$USER_GROUP")"
-admin_group_id="$(ensure_group "$ADMIN_GROUP")"
+access_group_id="$(ensure_group "$ACCESS_GROUP")"
+migrate_legacy_group_members "$access_group_id"
+assign_group_role "$access_group_id" "$ACCESS_ROLE"
 
-assign_group_role "$user_group_id" "$USER_ROLE"
-assign_group_role "$admin_group_id" "$USER_ROLE"
-assign_group_role "$admin_group_id" "$ADMIN_ROLE"
-copy_source_admin_members "$admin_group_id"
-
-ensure_group_mapper "$client_id"
+remove_group_mapper "$client_id"
 ensure_auth_flow "$client_id"
+remove_legacy_access_model "$client_id"
 store_client_secret "$client_id"
 
 printf 'Configured Keycloak client %s in realm %s and stored its secret in 1Password.\n' "$CLIENT_ID" "$REALM"

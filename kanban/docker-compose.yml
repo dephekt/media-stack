@@ -83,8 +83,6 @@ services:
     environment:
       - KANBOARD_OAUTH2_CLIENT_ID=kanboard
       - KANBOARD_OAUTH2_ISSUER=https://auth.dephekt.net/realms/home
-      - KANBOARD_OAUTH2_GROUP_CLAIM=kanboard_roles
-      - KANBOARD_OAUTH2_GROUP_FILTER=kanboard-users,kanboard-admins
       - KANBOARD_OAUTH2_LOGIN_TEXT=Login with Keycloak
       - KANBOARD_APPLICATION_URL=https://kanban.ai.dephekt.net/
     volumes:
