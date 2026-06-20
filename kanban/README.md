@@ -6,10 +6,14 @@ Shared Kanboard deployment for agent-driven project tracking.
 
 - **kanban-router** - LAN and Pangolin-facing front door.
 - **kanboard** - Kanboard application, pinned to `kanboard/kanboard:v1.2.51`
-  with the OAuth2 plugin baked into a local image.
+  with the OAuth2 and Model Context Protocol plugins baked into a local image.
 - **kanboard-oauth-init** - one-shot container that writes Keycloak OAuth2
   settings into the Kanboard database.
 - **kanban-ref** - prefix-aware redirector for links such as `/i/HGC-001`.
+
+The Kanboard base image declares `/var/www/app/plugins` as a volume. The local
+image keeps managed plugin sources under `/opt/kanboard/plugins` and syncs them
+into the plugin volume on startup so pinned plugin updates survive rebuilds.
 
 Public URL:
 
