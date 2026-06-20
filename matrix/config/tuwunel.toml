@@ -20,6 +20,10 @@ allow_registration = false
 # Enable federation
 allow_federation = true
 
+# Enable Tuwunel's Matrix-facing OIDC authorization server.
+[global.well_known]
+client = "https://matrix.dephekt.net"
+
 # OIDC with Keycloak
 [[global.identity_provider]]
 brand = "keycloak"

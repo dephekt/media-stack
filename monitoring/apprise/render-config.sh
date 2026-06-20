@@ -48,6 +48,34 @@ parse_discord_webhook 'op://Personal/rsyduej7c4oak4uhm7v54ku7dm/infra-webhook' \
 parse_discord_webhook 'op://Personal/rsyduej7c4oak4uhm7v54ku7dm/cam-webhook' \
   DISCORD_CAM_ID DISCORD_CAM_TOKEN
 
+# Matrix alert bot. The bot account must already be joined to these rooms.
+# Store room IDs such as !abc123:dephekt.net, not aliases. The token is URL-
+# encoded for the auth component; room IDs stay raw because Apprise encodes the
+# path before calling Matrix /join.
+urlencode() {
+  python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read().strip(), safe=""))'
+}
+
+MATRIX_ALERTS_TOKEN_RAW="$(op read 'op://Personal/Matrix Alerts/access-token')" \
+  || { echo "ERROR: failed to read op://Personal/Matrix Alerts/access-token" >&2; exit 1; }
+MATRIX_ROOM_IPTV_RAW="$(op read 'op://Personal/Matrix Alerts/room-id-iptv-alerts')" \
+  || { echo "ERROR: failed to read op://Personal/Matrix Alerts/room-id-iptv-alerts" >&2; exit 1; }
+MATRIX_ROOM_INFRA_RAW="$(op read 'op://Personal/Matrix Alerts/room-id-container-alerts')" \
+  || { echo "ERROR: failed to read op://Personal/Matrix Alerts/room-id-container-alerts" >&2; exit 1; }
+MATRIX_ROOM_CAM_RAW="$(op read 'op://Personal/Matrix Alerts/room-id-cam-alerts')" \
+  || { echo "ERROR: failed to read op://Personal/Matrix Alerts/room-id-cam-alerts" >&2; exit 1; }
+
+if [ -z "$MATRIX_ALERTS_TOKEN_RAW" ] || [ -z "$MATRIX_ROOM_IPTV_RAW" ] \
+  || [ -z "$MATRIX_ROOM_INFRA_RAW" ] || [ -z "$MATRIX_ROOM_CAM_RAW" ]; then
+  echo "ERROR: empty Matrix alert secret from 1Password" >&2
+  exit 1
+fi
+
+MATRIX_ALERTS_TOKEN="$(printf '%s' "$MATRIX_ALERTS_TOKEN_RAW" | urlencode)"
+MATRIX_ROOM_IPTV="$MATRIX_ROOM_IPTV_RAW"
+MATRIX_ROOM_INFRA="$MATRIX_ROOM_INFRA_RAW"
+MATRIX_ROOM_CAM="$MATRIX_ROOM_CAM_RAW"
+
 # Healthchecks.io ping URLs. Stored in 1Password as full URLs
 # (https://hc-ping.com/<uuid>); we use the full URL directly for cron-side and
 # events-watcher pings, and extract just the UUID for the apprise heartbeat
@@ -84,6 +112,10 @@ sed \
   -e "s|{{DISCORD_INFRA_TOKEN}}|$DISCORD_INFRA_TOKEN|g" \
   -e "s|{{DISCORD_CAM_ID}}|$DISCORD_CAM_ID|g" \
   -e "s|{{DISCORD_CAM_TOKEN}}|$DISCORD_CAM_TOKEN|g" \
+  -e "s|{{MATRIX_ALERTS_TOKEN}}|$MATRIX_ALERTS_TOKEN|g" \
+  -e "s|{{MATRIX_ROOM_IPTV}}|$MATRIX_ROOM_IPTV|g" \
+  -e "s|{{MATRIX_ROOM_INFRA}}|$MATRIX_ROOM_INFRA|g" \
+  -e "s|{{MATRIX_ROOM_CAM}}|$MATRIX_ROOM_CAM|g" \
   -e "s|{{HC_APPRISE_PIPELINE_UUID}}|$HC_APPRISE_PIPELINE_UUID|g" \
   "$TEMPLATE" > "$OUT"
 

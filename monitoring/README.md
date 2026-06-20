@@ -7,24 +7,27 @@ to give independent paths to the phone for different failure classes.
 
 ## Where alerts actually land
 
-Everything routes to Discord, plus UptimeRobot's mobile push app for the
-external-probe path. There is no longer a self-hosted notification
-delivery server in this stack — `ntfy` was retired because iOS ntfy can't
-mute per-topic, making Discord (mutable channels, same UX on iOS and
-Android) the better surface.
+Most local alerts route to Discord and Matrix in parallel while Matrix
+delivery is shaken down. UptimeRobot remains Discord plus mobile push only:
+its webhook option requires a paid plan and it has no native Matrix
+integration. There is no longer a self-hosted notification delivery server
+in this stack — `ntfy` was retired because iOS ntfy can't mute per-topic,
+but public ntfy.sh remains a redundant path for non-sensitive infra alerts.
 
-| Source                                        | Path to your phone                               | Discord channel    |
-|-----------------------------------------------|--------------------------------------------------|--------------------|
-| `events-watcher` (container healthcheck transitions) | apprise-api → Discord webhook + ntfy.sh   | `#container-alerts`|
-| `service-checks` (IPTV probes)                | apprise-api → Discord webhook + ntfy.sh          | `#iptv-alerts`     |
-| `UptimeRobot` (external HTTP probes for public dephekt.net domains) | direct → push app + Discord webhook | `#public-status`   |
-| `Healthchecks.io` (dead-man for cron / daemon / apprise pipeline) | direct → Discord integration  | hc.io's configured channel |
+| Source                                        | Path to your phone                               | Rooms / channels    |
+|-----------------------------------------------|--------------------------------------------------|---------------------|
+| `events-watcher` (container healthcheck transitions) | apprise-api -> Matrix + Discord webhook + ntfy.sh | `#container-alerts` |
+| `service-checks` (IPTV probes)                | apprise-api -> Matrix + Discord webhook + ntfy.sh | `#iptv-alerts`      |
+| `cam-notify` (`tag=cam`)                      | apprise-api -> Matrix + Discord webhook          | private `#cam-alerts` |
+| `UptimeRobot` (external HTTP probes for public dephekt.net domains) | direct -> push app + Discord webhook | `#public-status`    |
+| `Healthchecks.io` (dead-man for cron / daemon / apprise pipeline) | direct -> Matrix + Discord integrations | `#health-checks`    |
 
 Public status page (UptimeRobot): <https://status.dephekt.net/>.
 
 ntfy.sh is kept as a redundant secondary channel for the infra-alert tags
-(iptv, critical/warning/info) — it's an independent path from Discord, so a
-Discord outage wouldn't silence those alerts. Cam alerts go to Discord only.
+(iptv, critical/warning/info) — it's an independent path from Discord and
+Matrix, so a chat outage would not silence those alerts. Cam alerts do not
+use ntfy.sh because the camera-availability channel is private to Daniel.
 
 ## Constellation-of-alerts diagnosis
 
@@ -69,29 +72,41 @@ didn't is itself the diagnosis:
   pangolin, iptvboss). Notification destinations: UptimeRobot's mobile
   push app + a Discord webhook into `#public-status`. Status page at
   status.dephekt.net. Lives entirely off-box, so an outage that takes
-  down the whole homelab still pages the phone via SaaS push. Managed
-  in the UptimeRobot web UI; nothing in this repo controls it.
+  down the whole homelab still pages the phone via SaaS push. UptimeRobot
+  stays off Matrix until the account has either webhooks or a native Matrix
+  integration. Managed in the UptimeRobot web UI; nothing in this repo
+  controls it.
 
 - **Healthchecks.io** — dead-man checks (one per cron job, plus the
   events-watcher daemon heartbeat, plus the apprise-pipeline heartbeat).
   When a cron job's expected ping doesn't arrive within its grace
-  window, hc.io alerts via its own Discord integration. The list of
-  checks and their schedules is provisioned via API; ping URLs come from
-  1Password (`op://Personal/Healthchecks.io/ping-url-*`) and are
-  injected at deploy time by `apprise/render-config.sh`.
+  window, hc.io alerts via its own Matrix and Discord integrations. The
+  Matrix integration lands in `#health-checks`. The list of checks and
+  their schedules is provisioned via API; ping URLs come from 1Password
+  (`op://Personal/Healthchecks.io/ping-url-*`) and are injected at deploy
+  time by `apprise/render-config.sh`.
 
 ## Apprise tag routing
 
 `apprise/monitoring.yaml.template` is committed with placeholders;
 `render-config.sh` substitutes the actual values from 1Password
-(`op://Personal/Ntfy/topic-{iptv,general}` and the Discord webhooks under
-`op://Personal/.../alert-webhook|cam-webhook|infra-webhook`). The rendered
+(`op://Personal/Ntfy/topic-{iptv,general}`, the Discord webhooks under
+`op://Personal/.../alert-webhook|cam-webhook|infra-webhook`, and
+`op://Personal/Matrix Alerts/{access-token,room-id-*}`). The rendered
 `monitoring.yaml` is gitignored.
+
+Before `make inject-secrets` can render Matrix routes, create a local Matrix
+alerts bot such as `@matrix-alerts:dephekt.net`, join it to
+`#container-alerts`, `#iptv-alerts`, and the private `#cam-alerts`, log it in
+once, and store its access token as
+`op://Personal/Matrix Alerts/access-token`. Room IDs are already stored on the
+same item; do not replace them with aliases.
 
 | Tag                           | Destinations                                  | Source of alerts                                  |
 |-------------------------------|------------------------------------------------|---------------------------------------------------|
-| `iptv`                        | ntfy.sh `notify-iptv-<rand>` + Discord `#iptv-alerts`  | service-checks IPTV probes              |
-| `critical`, `warning`, `info` | ntfy.sh `notify-general-<rand>` + Discord `#container-alerts` | events-watcher container transitions      |
+| `iptv`                        | Matrix `#iptv-alerts` + Discord `#iptv-alerts` + ntfy.sh `notify-iptv-<rand>` | service-checks IPTV probes |
+| `critical`, `warning`, `info` | Matrix `#container-alerts` + Discord `#container-alerts` + ntfy.sh `notify-general-<rand>` | events-watcher container transitions |
+| `cam`                         | private Matrix `#cam-alerts` + Discord `#cam-alerts` | cam-notify availability transitions |
 | `heartbeat`                   | hc.io (`jsons://hc-ping.com/<uuid>`) — used by the apprise-pipeline cron | service-checks `*/5` heartbeat cron |
 
 The `heartbeat` tag uses apprise's generic `jsons://` scheme rather than a

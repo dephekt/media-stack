@@ -1,7 +1,10 @@
 # Apprise YAML config TEMPLATE — rendered to monitoring.yaml at inject-secrets time.
 #
 # Topic placeholders {{TOPIC_*}} are substituted with values from 1Password
-# (op://Personal/Ntfy/topic-{iptv,general}). The hc.io UUID placeholder
+# (op://Personal/Ntfy/topic-{iptv,general}). Matrix placeholders are rendered
+# from op://Personal/Matrix Alerts/{access-token,room-id-*}; raw room IDs are
+# used instead of aliases so delivery does not depend on room directory lookup.
+# The hc.io UUID placeholder
 # {{HC_APPRISE_PIPELINE_UUID}} is substituted from
 # op://Personal/Healthchecks.io/ping-url-apprise-pipeline and embedded into a
 # generic jsons:// URL (apprise 1.10 has no dedicated healthchecks plugin, so
@@ -17,13 +20,13 @@
 # monitoring-config-load`.
 #
 # Routing strategy:
-#  - Infra-alert tags (iptv, critical/warning/info) go to PUBLIC ntfy.sh +
-#    Discord. ntfy.sh is independent of self-hosted infra so alerts get out
-#    even if wireguard / pangolin / newt is broken; Discord is the primary
-#    channel since iOS ntfy lacks per-topic mute controls.
-#  - The cam tag (cnotify) goes to Discord only -- self-hosted ntfy was
-#    retired because iOS ntfy can't mute topics, making Discord (with mutable
-#    channels) the better surface despite the third-party tradeoff.
+#  - Infra-alert tags (iptv, critical/warning/info) go to PUBLIC ntfy.sh,
+#    Discord, and Matrix. ntfy.sh is independent of self-hosted infra so alerts
+#    get out even if wireguard / pangolin / newt is broken; Matrix is being
+#    added as a parallel channel before Discord is removed.
+#  - The cam tag (cnotify) goes to Discord and a private Matrix room. Self-
+#    hosted ntfy was retired because iOS ntfy can't mute topics, and ntfy.sh
+#    is not appropriate for privacy-sensitive camera availability alerts.
 #  - The heartbeat tag goes to hc.io via a generic jsons:// POST; the hc.io
 #    check pages via Discord if the apprise pipeline ever stops firing the
 #    heartbeat (cron dead, apprise dead, internet egress dead, etc.).
@@ -49,7 +52,13 @@ urls:
   - discord://{{DISCORD_IPTV_ID}}/{{DISCORD_IPTV_TOKEN}}:
       tag: iptv
 
+  - matrixs://{{MATRIX_ALERTS_TOKEN}}@matrix.dephekt.net/{{MATRIX_ROOM_IPTV}}?discovery=no&e2ee=no:
+      tag: iptv
+
   - discord://{{DISCORD_CAM_ID}}/{{DISCORD_CAM_TOKEN}}:
+      tag: cam
+
+  - matrixs://{{MATRIX_ALERTS_TOKEN}}@matrix.dephekt.net/{{MATRIX_ROOM_CAM}}?discovery=no&e2ee=no:
       tag: cam
 
   - ntfy://ntfy.sh/{{TOPIC_GENERAL}}:
@@ -61,6 +70,12 @@ urls:
   # Infrastructure alerts also fan out to a Discord channel (catch-all
   # general topic: critical/warning/info).
   - discord://{{DISCORD_INFRA_ID}}/{{DISCORD_INFRA_TOKEN}}:
+      tag:
+        - critical
+        - warning
+        - info
+
+  - matrixs://{{MATRIX_ALERTS_TOKEN}}@matrix.dephekt.net/{{MATRIX_ROOM_INFRA}}?discovery=no&e2ee=no:
       tag:
         - critical
         - warning

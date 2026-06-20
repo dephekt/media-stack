@@ -35,7 +35,7 @@ make matrix-up
 
 Tuwunel is configured via `matrix/config/tuwunel.toml` (mounted read-only). Key settings:
 
-- `server_name = "matrix.dephekt.net"` — immutable after first start
+- `server_name = "dephekt.net"` — immutable after first start
 - `allow_registration = false` — registration is disabled; use OIDC
 - `allow_federation = true` — federation enabled
 - OIDC provider configured for Keycloak (`home` realm)
@@ -58,7 +58,7 @@ Tuwunel uses Keycloak as the OIDC identity provider. The client (`tuwunel`) is c
 
 ## Federation
 
-This setup uses `matrix.dephekt.net` as the server name. Federation is enabled by default. Ensure DNS and Pangolin routes for `matrix.dephekt.net` are resolvable externally.
+This setup uses `dephekt.net` as the Matrix server name, with client traffic served from `matrix.dephekt.net`. Federation is enabled by default. Ensure DNS and Pangolin routes for `matrix.dephekt.net` are resolvable externally.
 
 ## Element Web
 

@@ -19,12 +19,12 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Grow App** (`grow/`): LAN-local grow-app site HMI for Daniel's grow. No Pangolin or Keycloak in Phase 1; exposed directly on host port `3080`.
 
 ### Monitoring & alerting (`monitoring/`)
-Three local containers + two SaaS witnesses; all paths land in Discord (and UptimeRobot also sends mobile push). See `monitoring/README.md` for the routing matrix and the constellation-of-alerts diagnostic pattern.
-- **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to Discord webhooks + ntfy.sh per `monitoring/apprise/monitoring.yaml.template`.
+Three local containers + two SaaS witnesses. Local Apprise paths land in Discord + Matrix during the migration window; UptimeRobot remains Discord + mobile push only. See `monitoring/README.md` for the routing matrix and the constellation-of-alerts diagnostic pattern.
+- **apprise-api**: Central notification router; accepts tagged HTTP POSTs and fans out to Matrix, Discord webhooks, and ntfy.sh per `monitoring/apprise/monitoring.yaml.template`.
 - **events-watcher**: Tails `docker events --filter event=health_status` and turns container healthcheck transitions into `tag=critical`/`tag=info` notifications. Pings healthchecks.io every 5 min as a dead-man for the daemon itself.
 - **service-checks**: supercronic-driven container running probe scripts under `service-checks/checks/` (IPTV auth, channel-count, EPG freshness, EPG canary, renewal warning). Each script pings its own hc.io check at start/success/fail via the `_lib.py` `check_main` decorator. A `*/5` heartbeat cron POSTs `tag=heartbeat` through apprise to hc.io as the apprise-pipeline dead-man.
-- **UptimeRobot** (SaaS, off-box): external HTTP probes for the public dephekt.net domains. Status page at `status.dephekt.net`. Notifies via mobile push + a Discord webhook into `#public-status`. Lives outside the homelab so it still pages when home internet is down.
-- **Healthchecks.io** (SaaS, off-box): dead-man checks (one per cron job, plus events-watcher and apprise-pipeline). Ping URLs are provisioned via API and stored in 1Password (`op://Personal/Healthchecks.io/ping-url-*`); render-config.sh injects them at deploy time. Alerts via hc.io's Discord integration.
+- **UptimeRobot** (SaaS, off-box): external HTTP probes for the public dephekt.net domains. Status page at `status.dephekt.net`. Notifies via mobile push + a Discord webhook into `#public-status`; Matrix is not configured because webhooks require a paid UptimeRobot plan and there is no native Matrix integration.
+- **Healthchecks.io** (SaaS, off-box): dead-man checks (one per cron job, plus events-watcher and apprise-pipeline). Ping URLs are provisioned via API and stored in 1Password (`op://Personal/Healthchecks.io/ping-url-*`); render-config.sh injects them at deploy time. Alerts via hc.io's Matrix and Discord integrations.
 
 ## Networks
 - **`proxy`** (external, shared): All frontend containers that Pangolin proxies to
