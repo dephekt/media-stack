@@ -6,17 +6,20 @@ STACK_PROJECT_DIR = $(PROJECT_DIR_$(1))
 # STACK_CMD passes --context explicitly so per-stack overrides take effect.
 STACK_CMD = docker --context $(call STACK_CONTEXT,$(1)) compose $(if $(call STACK_PROJECT_DIR,$(1)),--project-directory $(call STACK_PROJECT_DIR,$(1))) -p $(1) -f $(1)/docker-compose.yml
 
-# COMMON_RULES: Generates up, restart, logs
+# COMMON_RULES: Generates up, pull, restart, logs
 # Args:
 #   $(1): Target Prefix (e.g., core or newt)
 #   $(2): Command String (e.g. "docker compose ...")
 #   $(3): Extra flags for 'up'
 #   $(4): Service Name (optional, empty for stack)
 define COMMON_RULES
-.PHONY: $(1)-up $(1)-restart $(1)-logs
+.PHONY: $(1)-up $(1)-pull $(1)-restart $(1)-logs
 
 $(1)-up:
 	$(2) up -d $(3) $(4)
+
+$(1)-pull:
+	$(2) pull $(4)
 
 $(1)-restart:
 	$(2) restart $(4)

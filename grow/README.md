@@ -20,8 +20,19 @@ Bring up the MQTT stack first so the external `grow-mqtt` network exists:
 make inject-agent-secrets
 make sync-secrets-media
 make mqtt-up
+make grow-pull
 make grow-up
 ```
+
+For normal grow-app UI updates after the app image has been published, run:
+
+```bash
+make grow-pull
+make grow-app-site-up
+```
+
+Use `make grow-up` instead when the grow Compose file or secrets need to be
+synced before recreating the service.
 
 Health check:
 
