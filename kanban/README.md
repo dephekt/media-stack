@@ -73,7 +73,16 @@ Required fields:
 The API username is Kanboard's built-in `jsonrpc` user.
 
 Reference prefix mappings live in `kanban/ref/projects.yaml` and are copied into
-the redirector image at build time.
+the redirector image at build time. The `/i/<TASK_REF>` redirector is
+public-first: public Kanboard projects redirect to
+`/public/task/<task_id>/<project_token>`, while private projects keep the
+authenticated task view URL.
+
+For Codeberg repositories that link to this tracker, use:
+
+- External issue tracker URL: `https://kanban.ai.dephekt.net/`
+- External issue tracker URL format: `https://kanban.ai.dephekt.net/i/{index}`
+- External issue tracker style: `Alphanumeric ABC-123`
 
 ## Deploy
 

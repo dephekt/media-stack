@@ -23,12 +23,9 @@ class KanboardError(RuntimeError):
 
 
 def load_projects(path):
-    with open(path, "r", encoding="utf-8") as handle:
+    with open(path, encoding="utf-8") as handle:
         raw = handle.read()
-    if yaml is not None:
-        data = yaml.safe_load(raw)
-    else:
-        data = parse_minimal_projects(raw)
+    data = yaml.safe_load(raw) if yaml is not None else parse_minimal_projects(raw)
     projects = data.get("projects") if isinstance(data, dict) else None
     if not isinstance(projects, dict):
         raise KanboardError("projects config must contain a projects mapping")
@@ -65,7 +62,7 @@ def api_call(method, *params):
         headers={
             "Content-Type": "application/json",
             "Authorization": "Basic "
-            + base64.b64encode(f"jsonrpc:{token}".encode("utf-8")).decode("ascii"),
+            + base64.b64encode(f"jsonrpc:{token}".encode()).decode("ascii"),
         },
         method="POST",
     )
@@ -84,11 +81,15 @@ def api_call(method, *params):
     return data.get("result")
 
 
-def task_url(request_headers, task):
+def request_origin(request_headers):
     host = request_headers.get("Host", "kanban.ai.dephekt.net")
     proto = request_headers.get("X-Forwarded-Proto")
     if proto not in {"http", "https"}:
         proto = "http" if host.startswith("containers.home.arpa") else "https"
+    return f"{proto}://{host}"
+
+
+def private_task_url(request_headers, task):
     query = urllib.parse.urlencode(
         {
             "controller": "TaskViewController",
@@ -97,7 +98,30 @@ def task_url(request_headers, task):
             "project_id": task["project_id"],
         }
     )
-    return f"{proto}://{host}/?{query}"
+    return f"{request_origin(request_headers)}/?{query}"
+
+
+def public_task_url(request_headers, task, project_record):
+    token = project_record.get("token")
+    if not token:
+        raise KanboardError("public project is missing public token")
+    return f"{request_origin(request_headers)}/public/task/{task['id']}/{token}"
+
+
+def is_enabled(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        return value.lower() in {"1", "true", "yes", "on"}
+    return False
+
+
+def task_url(request_headers, project_record, task):
+    if is_enabled(project_record.get("is_public")):
+        return public_task_url(request_headers, task, project_record)
+    return private_task_url(request_headers, task)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -148,18 +172,21 @@ class Handler(BaseHTTPRequestHandler):
                     send_body=send_body,
                 )
                 return
+            location = task_url(self.headers, project_record, task)
         except (KeyError, KanboardError, OSError, ValueError) as exc:
             self.send_json(503, {"error": str(exc)}, send_body=send_body)
             return
 
-        location = task_url(self.headers, task)
         self.send_response(302)
         self.send_header("Location", location)
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
 
     def log_message(self, fmt, *args):
-        sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), fmt % args))
+        message = fmt % args
+        sys.stderr.write(
+            f"{self.address_string()} - - [{self.log_date_time_string()}] {message}\n"
+        )
 
     def send_json(self, status, payload, send_body=True):
         body = json.dumps(payload).encode("utf-8")

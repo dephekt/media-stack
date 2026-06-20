@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 import urllib.request
+from contextlib import suppress
 from pathlib import Path
 
 APPRISE_URL = os.environ["APPRISE_URL"]
@@ -40,10 +41,8 @@ def _hc_ping(script_name: str, suffix: str = "") -> None:
     url = os.environ.get(env_var)
     if not url:
         return
-    try:
+    with suppress(Exception):
         urllib.request.urlopen(url + suffix, timeout=5).read()
-    except Exception:
-        pass
 
 
 def state_get(key: str, default=None):

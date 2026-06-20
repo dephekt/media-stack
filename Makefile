@@ -333,7 +333,7 @@ ldap-reset-admin:
 # YAML target uses `git ls-files` so rendered/gitignored YAML (e.g. the
 # 1Password-rendered pangolin/config/config.yml) is automatically skipped.
 
-PY_LINT_PATHS   := monitoring/service-checks
+PY_LINT_PATHS   := monitoring/service-checks kanban/ref
 SH_LINT_FILES   := $(shell find . -type f -name '*.sh' -not -path './.git/*' -not -path '*/secrets/*')
 YAML_LINT_FILES := $(shell git ls-files '*.yml' '*.yaml' '*.yml.template' '*.yaml.template')
 
