@@ -68,6 +68,7 @@ I group sets of services into separate Docker compose projects in this repo:
 - mqtt: Mosquitto site broker + central aggregator for the grow-control MQTT spine. See [`mqtt/README.md`](mqtt/README.md).
 - grow: Daniel's LAN-local grow-app site HMI on port `3080`. See [`grow/README.md`](grow/README.md).
 - matrix: Tuwunel homeserver with Element Web for family/friends chat. Tuwunel uses built-in RocksDB (no PostgreSQL). Exposed via Pangolin at `matrix.${DOMAIN}` (homeserver) and `chat.${DOMAIN}` (Element Web). See [`matrix/README.md`](matrix/README.md).
+- penpot: self-hosted Penpot design workspace at `https://design.ai.${DOMAIN}` for grow-app HMI design review. Penpot uses Keycloak OIDC directly; Pangolin only handles ingress/TLS. See [`penpot/README.md`](penpot/README.md).
 
 ## How it works (one minute)
 

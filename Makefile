@@ -23,7 +23,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix
+STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -35,6 +35,7 @@ SERVICES_pangolin := pangolin gerbil traefik
 SERVICES_mqtt    := mosquitto-site mosquitto-central
 SERVICES_grow    := grow-app-site
 SERVICES_matrix  := tuwunel element-web
+SERVICES_penpot  := penpot-frontend penpot-backend penpot-mcp penpot-exporter penpot-postgres penpot-valkey
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -54,7 +55,37 @@ REQUIRED_SECRETS := \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
 	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
-	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET
+	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
+	penpot/secrets/penpot.env
+
+MEDIA_SYNC_REQUIRED := \
+	core/secrets \
+	core/config.env \
+	core/docker-compose.yml \
+	immich/.env \
+	immich/hwaccel.ml.yml \
+	immich/hwaccel.transcoding.yml \
+	monitoring/config.env \
+	monitoring/secrets \
+	monitoring/apprise \
+	monitoring/events-watcher \
+	monitoring/service-checks \
+	mqtt/secrets \
+	mqtt/site \
+	mqtt/central \
+	mqtt/entrypoint \
+	mqtt/docker-compose.yml \
+	grow/docker-compose.yml \
+	matrix/secrets \
+	matrix/config.env \
+	matrix/docker-compose.yml \
+	matrix/config/tuwunel.toml \
+	matrix/config/element-web.json \
+	penpot/secrets \
+	penpot/docker-compose.yml
+
+MEDIA_SYNC_OPTIONAL := \
+	keycloak-import/
 
 include Makefile.include
 
@@ -104,7 +135,7 @@ monitoring-config-load:
 
 inject-secrets:
 	@echo "Injecting secrets from 1Password..."
-	@mkdir -p core/secrets monitoring/secrets matrix/secrets
+	@mkdir -p core/secrets monitoring/secrets matrix/secrets penpot/secrets
 	@$(READ_SECRET_FN); \
 	read_secret "op://Develop/Keycloak Admin/password" "core/secrets/KEYCLOAK_ADMIN_PASSWORD.env"; \
 	read_secret "op://Develop/Keycloak DB/password" "core/secrets/DB_PASSWORD.env"; \
@@ -129,6 +160,30 @@ inject-secrets:
 	printf "CLOUDFLARE_DNS_API_TOKEN=%s\n" "$$secret_val" > pangolin/secrets/pangolin.env
 	@# Render pangolin/config/config.yml from template + 1Password
 	@./pangolin/config/render-config.sh
+	@# Penpot: KEY=VALUE env file consumed by upstream images.
+	@set -eu; \
+	read_penpot_secret() { \
+		local op_ref="$$1"; \
+		local secret_val; \
+		if ! secret_val=$$(op read "$$op_ref"); then \
+			echo "ERROR: Failed to read from 1Password: $$op_ref"; \
+			exit 1; \
+		fi; \
+		if [ -z "$$secret_val" ]; then \
+			echo "ERROR: Empty secret retrieved from: $$op_ref"; \
+			exit 1; \
+		fi; \
+		printf "%s" "$$secret_val"; \
+	}; \
+	PENPOT_SECRET_KEY=$$(read_penpot_secret "op://Develop/Penpot/secret key"); \
+	PENPOT_DATABASE_PASSWORD=$$(read_penpot_secret "op://Develop/Penpot/database password"); \
+	PENPOT_OIDC_CLIENT_SECRET=$$(read_penpot_secret "op://Develop/Penpot/OIDC client secret"); \
+	{ \
+		printf "PENPOT_SECRET_KEY=%s\n" "$$PENPOT_SECRET_KEY"; \
+		printf "PENPOT_DATABASE_PASSWORD=%s\n" "$$PENPOT_DATABASE_PASSWORD"; \
+		printf "POSTGRES_PASSWORD=%s\n" "$$PENPOT_DATABASE_PASSWORD"; \
+		printf "PENPOT_OIDC_CLIENT_SECRET=%s\n" "$$PENPOT_OIDC_CLIENT_SECRET"; \
+	} > penpot/secrets/penpot.env
 	@echo "Secrets injected successfully!"
 	@echo "Note: */secrets/* files are git-ignored and should not be committed"
 
@@ -161,8 +216,27 @@ inject-agent-secrets:
 
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \
+		missing=0; \
+		for path in $(MEDIA_SYNC_REQUIRED); do \
+			if [ ! -e "$$path" ]; then \
+				echo "Missing media sync input: $$path"; \
+				missing=1; \
+			fi; \
+		done; \
+		if [ $$missing -ne 0 ]; then \
+			echo "Cannot sync media-server files; restore missing required inputs."; \
+			exit 1; \
+		fi; \
+		optional_inputs=""; \
+		for path in $(MEDIA_SYNC_OPTIONAL); do \
+			if [ -e "$$path" ]; then \
+				optional_inputs="$$optional_inputs $$path"; \
+			else \
+				echo "Skipping optional media sync input: $$path"; \
+			fi; \
+		done; \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative core/secrets core/config.env core/docker-compose.yml keycloak-import/ immich/.env immich/hwaccel.ml.yml immich/hwaccel.transcoding.yml monitoring/config.env monitoring/secrets monitoring/apprise monitoring/events-watcher monitoring/service-checks mqtt/secrets mqtt/site mqtt/central mqtt/entrypoint mqtt/docker-compose.yml grow/docker-compose.yml matrix/secrets matrix/config.env matrix/docker-compose.yml matrix/config/tuwunel.toml matrix/config/element-web.json $(REMOTE_HOST_media):~/docker/; \
+		rsync -avz --relative $(MEDIA_SYNC_REQUIRED) $$optional_inputs $(REMOTE_HOST_media):~/docker/ && \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \
