@@ -5,7 +5,7 @@ Daniel's LAN-local `grow-app` site-mode HMI.
 ## Service
 
 - **grow-app-site** — SvelteKit server for the local grow HMI/API.
-- Image: `codeberg.org/stackdrift-images/grow-app:edge-node24-bookworm-slim`.
+- Image: `codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim`.
 - LAN URL: `http://<media-server-LAN-IP>:3080`.
 - MQTT broker: `mosquitto-site` on the shared `grow-mqtt` Docker network.
 - Firmware packages: private Codeberg generic packages under

@@ -2,7 +2,7 @@ name: grow
 
 services:
   grow-app-site:
-    image: codeberg.org/stackdrift-images/grow-app:edge-node24-bookworm-slim
+    image: codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim
     container_name: grow-app-site
     restart: unless-stopped
     ports:
