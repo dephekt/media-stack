@@ -23,6 +23,7 @@ class KanbanRefHandlerTest(unittest.TestCase):
             "token": "837ffef1c79917c32d6ed0f994e5ab6f4442cd25f3ca60da3acf6fceaf61",
         }
         self.task = {"id": "4", "project_id": "1"}
+        self.tasks_by_ref = {"HGC-004": self.task}
 
         self.env_patch = mock.patch.dict(
             os.environ,
@@ -33,7 +34,7 @@ class KanbanRefHandlerTest(unittest.TestCase):
         )
         self.api_patch = mock.patch("kanban_ref.api_call", side_effect=self.api_call)
         self.env_patch.start()
-        self.api_patch.start()
+        self.api_mock = self.api_patch.start()
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), kanban_ref.Handler)
         self.thread = threading.Thread(target=self.server.serve_forever)
@@ -52,8 +53,7 @@ class KanbanRefHandlerTest(unittest.TestCase):
             self.assertEqual(params, ("Hydro Grow Control",))
             return self.project_record
         if method == "getTaskByReference":
-            self.assertEqual(params, (1, "HGC-004"))
-            return self.task
+            return self.tasks_by_ref.get(params[1])
         raise AssertionError(f"unexpected API method: {method}")
 
     def request(self, path, method="HEAD", headers=None):
@@ -81,6 +81,39 @@ class KanbanRefHandlerTest(unittest.TestCase):
             "https://kanban.ai.dephekt.net/public/task/4/"
             "837ffef1c79917c32d6ed0f994e5ab6f4442cd25f3ca60da3acf6fceaf61",
         )
+        kanboard_ref = mock.call("getTaskByReference", 1, "HGC-004")
+        self.assertEqual(self.api_mock.mock_calls.count(kanboard_ref), 1)
+
+    def test_forgejo_reference_falls_back_to_padded_kanboard_reference(self):
+        response, _ = self.request(
+            "/i/HGC-4",
+            headers={
+                "Host": "kanban.ai.dephekt.net",
+                "X-Forwarded-Proto": "https",
+            },
+        )
+
+        self.assertEqual(response.status, 302)
+        self.api_mock.assert_has_calls(
+            [
+                mock.call("getTaskByReference", 1, "HGC-4"),
+                mock.call("getTaskByReference", 1, "HGC-004"),
+            ]
+        )
+
+    def test_forgejo_reference_prefers_exact_kanboard_reference(self):
+        self.tasks_by_ref = {"HGC-5": {"id": "5", "project_id": "1"}}
+
+        response, _ = self.request("/i/HGC-5")
+
+        self.assertEqual(response.status, 302)
+        self.assertEqual(
+            self.api_mock.mock_calls,
+            [
+                mock.call("getProjectByName", "Hydro Grow Control"),
+                mock.call("getTaskByReference", 1, "HGC-5"),
+            ],
+        )
 
     def test_private_project_redirects_to_authenticated_task_url(self):
         self.project_record["is_public"] = "0"
@@ -99,7 +132,14 @@ class KanbanRefHandlerTest(unittest.TestCase):
 
     def test_unknown_prefix_returns_not_found_without_api_lookup(self):
         with mock.patch("kanban_ref.api_call") as api_call:
-            response, _ = self.request("/i/ABC-004")
+            response, _ = self.request("/i/ABC-4")
+
+        self.assertEqual(response.status, 404)
+        api_call.assert_not_called()
+
+    def test_short_leading_zero_reference_is_not_a_route(self):
+        with mock.patch("kanban_ref.api_call") as api_call:
+            response, _ = self.request("/i/HGC-04")
 
         self.assertEqual(response.status, 404)
         api_call.assert_not_called()

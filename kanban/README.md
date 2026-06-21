@@ -76,7 +76,8 @@ Reference prefix mappings live in `kanban/ref/projects.yaml` and are copied into
 the redirector image at build time. The `/i/<TASK_REF>` redirector is
 public-first: public Kanboard projects redirect to
 `/public/task/<task_id>/<project_token>`, while private projects keep the
-authenticated task view URL.
+authenticated task view URL. Forgejo-style refs such as `HGC-4` are preferred;
+legacy zero-padded refs such as `HGC-004` still resolve.
 
 For Codeberg repositories that link to this tracker, use:
 
@@ -102,6 +103,6 @@ curl https://kanban.ai.dephekt.net/healthcheck.php
 Reference redirects:
 
 ```bash
-curl -I http://containers.home.arpa:8097/i/HGC-001
-curl -I https://kanban.ai.dephekt.net/i/HGC-001
+curl -I http://containers.home.arpa:8097/i/HGC-1
+curl -I https://kanban.ai.dephekt.net/i/HGC-1
 ```

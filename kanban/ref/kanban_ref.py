@@ -15,7 +15,7 @@ except ImportError:
     yaml = None
 
 
-REF_RE = re.compile(r"^/i/([A-Z][A-Z0-9]{1,9}-[0-9]{3,})/?$")
+REF_RE = re.compile(r"^/i/([A-Z]{1,10}-(?:[1-9][0-9]*|[0-9]{3,}))/?$")
 
 
 class KanboardError(RuntimeError):
@@ -124,6 +124,16 @@ def task_url(request_headers, project_record, task):
     return private_task_url(request_headers, task)
 
 
+def reference_candidates(ref):
+    prefix, number_text = ref.rsplit("-", 1)
+    candidates = [ref]
+    if not number_text.startswith("0"):
+        legacy_ref = f"{prefix}-{int(number_text):03d}"
+        if legacy_ref != ref:
+            candidates.append(legacy_ref)
+    return candidates
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "kanban-ref/0.1"
 
@@ -164,7 +174,12 @@ class Handler(BaseHTTPRequestHandler):
                     send_body=send_body,
                 )
                 return
-            task = api_call("getTaskByReference", int(project_record["id"]), ref)
+            project_id = int(project_record["id"])
+            task = None
+            for candidate in reference_candidates(ref):
+                task = api_call("getTaskByReference", project_id, candidate)
+                if task:
+                    break
             if not task:
                 self.send_json(
                     404,
