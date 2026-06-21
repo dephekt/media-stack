@@ -56,6 +56,8 @@ REQUIRED_SECRETS := \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
 	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
+	grow/secrets/FIRMWARE_PACKAGE_TOKEN \
+	grow/secrets/FIRMWARE_UPDATE_TOKEN \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
 	penpot/secrets/penpot.env \
 	kanban/secrets/kanboard.env
@@ -77,6 +79,7 @@ MEDIA_SYNC_REQUIRED := \
 	mqtt/central \
 	mqtt/entrypoint \
 	mqtt/docker-compose.yml \
+	grow/secrets \
 	grow/docker-compose.yml \
 	matrix/secrets \
 	matrix/config.env \
@@ -201,7 +204,7 @@ inject-secrets:
 # the service account cannot access. Safe to run autonomously.
 inject-agent-secrets:
 	@echo "Injecting agent-managed secrets from 1Password (Agents vault)..."
-	@mkdir -p mqtt/secrets kanban/secrets
+	@mkdir -p mqtt/secrets grow/secrets kanban/secrets
 	@set -eu; \
 	read_agent_secret() { \
 		local op_ref="$$1"; \
@@ -220,6 +223,8 @@ inject-agent-secrets:
 	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD; \
+	read_agent_secret 'op://Agents/Grow App/codeberg-registry-pat' grow/secrets/FIRMWARE_PACKAGE_TOKEN; \
+	read_agent_secret 'op://Agents/Grow App/firmware-update-token' grow/secrets/FIRMWARE_UPDATE_TOKEN; \
 	admin_password=$$(op-agent read 'op://Agents/Kanboard/password'); \
 	api_token=$$(op-agent read 'op://Agents/Kanboard/api token'); \
 	oauth_client_secret=$$(op-agent read 'op://Agents/Kanboard/oauth client secret'); \
@@ -232,7 +237,7 @@ inject-agent-secrets:
 		printf 'API_AUTHENTICATION_TOKEN=%s\n' "$$api_token"; \
 		printf 'KANBOARD_OAUTH2_CLIENT_SECRET=%s\n' "$$oauth_client_secret"; \
 	} > kanban/secrets/kanboard.env
-	@echo "Agent-managed secrets injected (mqtt/secrets/, kanban/secrets/)."
+	@echo "Agent-managed secrets injected (mqtt/secrets/, grow/secrets/, kanban/secrets/)."
 
 sync-secrets-media: check-secrets
 	@if [ "$(DOCKER_CONTEXT)" != "default" ]; then \

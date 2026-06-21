@@ -8,9 +8,23 @@ Daniel's LAN-local `grow-app` site-mode HMI.
 - Image: `codeberg.org/stackdrift-images/grow-app:edge-node24-bookworm-slim`.
 - LAN URL: `http://<media-server-LAN-IP>:3080`.
 - MQTT broker: `mosquitto-site` on the shared `grow-mqtt` Docker network.
+- Firmware packages: private Codeberg generic packages under
+  `stackdrift-firmware`, fetched server-side with a package token.
 
 This is Phase 1 site mode only. It is not exposed through Pangolin and does not
 use Keycloak.
+
+## Secrets
+
+`make inject-agent-secrets` writes the grow-app runtime secrets from 1Password:
+
+- `op://Agents/Grow App/codeberg-registry-pat` ->
+  `grow/secrets/FIRMWARE_PACKAGE_TOKEN`
+- `op://Agents/Grow App/firmware-update-token` ->
+  `grow/secrets/FIRMWARE_UPDATE_TOKEN`
+
+The firmware update token must match `firmware_update_token` in the ESPHome
+secrets used by `grow-fleet`.
 
 ## Deploy
 
