@@ -5,6 +5,8 @@ CONTEXT_pangolin=pangolin-edge
 
 # Stacks deployed from synced files on the media server need compose paths to
 # resolve against the remote project directory when using the SSH docker context.
+PROJECT_DIR_core=/home/daniel/docker/core
+PROJECT_DIR_monitoring=/home/daniel/docker/monitoring
 PROJECT_DIR_mqtt=/home/daniel/docker/mqtt
 PROJECT_DIR_grow=/home/daniel/docker/grow
 
