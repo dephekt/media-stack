@@ -51,13 +51,13 @@ REQUIRED_SECRETS := \
 	monitoring/secrets/IPTV_UPSTREAM_PASS.env \
 	monitoring/secrets/IPTV_LOCAL_USER.env \
 	monitoring/secrets/IPTV_LOCAL_PASS.env \
-	monitoring/secrets/REGISTRY_DEPLOY_KEY.env \
+	monitoring/secrets/GHCR_READ_TOKEN.env \
 	pangolin/secrets/pangolin.env \
 	pangolin/config/config.yml \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
 	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
-	grow/secrets/FIRMWARE_PACKAGE_TOKEN \
+	grow/secrets/FIRMWARE_OCI_TOKEN \
 	grow/secrets/FIRMWARE_UPDATE_TOKEN \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
 	penpot/secrets/penpot.env \
@@ -68,6 +68,7 @@ MEDIA_SYNC_REQUIRED := \
 	core/secrets \
 	core/config.env \
 	core/docker-compose.yml \
+	core/newt-entrypoint.sh \
 	immich/.env \
 	immich/hwaccel.ml.yml \
 	immich/hwaccel.transcoding.yml \
@@ -166,7 +167,7 @@ inject-secrets:
 	read_secret "op://Develop/IPTV Upstream/password" "monitoring/secrets/IPTV_UPSTREAM_PASS.env"; \
 	read_secret "op://Develop/IPTV Local XC/username" "monitoring/secrets/IPTV_LOCAL_USER.env"; \
 	read_secret "op://Develop/IPTV Local XC/password" "monitoring/secrets/IPTV_LOCAL_PASS.env"; \
-	read_secret "op://Personal/Codeberg/Security/Container Registry PAT" "monitoring/secrets/REGISTRY_DEPLOY_KEY.env"; \
+	read_secret "op://Personal/GitHub/Security/GHCR Read PAT" "monitoring/secrets/GHCR_READ_TOKEN.env"; \
 	read_secret "op://Develop/Matrix/client secret" "matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET"
 	@# Render apprise/monitoring.yaml from template + 1Password topic names.
 	@# Topic names stay out of the public repo by living in 1P; the rendered
@@ -231,7 +232,7 @@ inject-agent-secrets:
 	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD; \
-	read_agent_secret 'op://Agents/Grow App/codeberg-registry-pat' grow/secrets/FIRMWARE_PACKAGE_TOKEN; \
+	read_agent_secret 'op://Agents/Grow App/github-firmware-oci-token' grow/secrets/FIRMWARE_OCI_TOKEN; \
 	read_agent_secret 'op://Agents/Grow App/firmware-update-token' grow/secrets/FIRMWARE_UPDATE_TOKEN; \
 	admin_password=$$(op-agent read 'op://Agents/Kanboard/password'); \
 	api_token=$$(op-agent read 'op://Agents/Kanboard/api token'); \

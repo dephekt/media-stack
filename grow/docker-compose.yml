@@ -2,7 +2,7 @@ name: grow
 
 services:
   grow-app-site:
-    image: codeberg.org/stackdrift/grow-app:edge-node24-bookworm-slim
+    image: ghcr.io/dephekt/grow-app:edge-node24-bookworm-slim
     container_name: grow-app-site
     restart: unless-stopped
     ports:
@@ -14,14 +14,16 @@ services:
       - MQTT_PASSWORD_FILE=/run/secrets/MQTT_GROW_APP_SITE_PASSWORD
       - MQTT_TOPIC_PREFIX=grow/daniel-home
       - MQTT_DISCOVERY_PREFIX=grow/daniel-home/_discovery
-      - FIRMWARE_PACKAGE_BASE_URL=https://codeberg.org
-      - FIRMWARE_PACKAGE_OWNER=stackdrift-firmware
-      - FIRMWARE_PACKAGE_AUTH_USER=stackdrift
-      - FIRMWARE_PACKAGE_TOKEN_FILE=/run/secrets/FIRMWARE_PACKAGE_TOKEN
+      - FIRMWARE_PACKAGE_PROVIDER=ghcr-oci
+      - FIRMWARE_OCI_REGISTRY=ghcr.io
+      - FIRMWARE_OCI_OWNER=dephekt
+      - FIRMWARE_OCI_PACKAGE_PREFIX=grow-fleet-firmware
+      - FIRMWARE_OCI_AUTH_USER=dephekt
+      - FIRMWARE_OCI_TOKEN_FILE=/run/secrets/FIRMWARE_OCI_TOKEN
       - FIRMWARE_UPDATE_TOKEN_FILE=/run/secrets/FIRMWARE_UPDATE_TOKEN
     secrets:
       - MQTT_GROW_APP_SITE_PASSWORD
-      - FIRMWARE_PACKAGE_TOKEN
+      - FIRMWARE_OCI_TOKEN
       - FIRMWARE_UPDATE_TOKEN
     networks:
       - grow-mqtt
@@ -39,7 +41,7 @@ networks:
 secrets:
   MQTT_GROW_APP_SITE_PASSWORD:
     file: ../mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD
-  FIRMWARE_PACKAGE_TOKEN:
-    file: ./secrets/FIRMWARE_PACKAGE_TOKEN
+  FIRMWARE_OCI_TOKEN:
+    file: ./secrets/FIRMWARE_OCI_TOKEN
   FIRMWARE_UPDATE_TOKEN:
     file: ./secrets/FIRMWARE_UPDATE_TOKEN

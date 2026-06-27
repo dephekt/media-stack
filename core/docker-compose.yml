@@ -1,6 +1,6 @@
 services:
   newt:
-    image: codeberg.org/stackdrift-images/newt:fix-stale-tunnel-deadlock-newt1.12.3
+    image: fosrl/newt:1.13.0
     container_name: newt
     restart: unless-stopped
     env_file:
@@ -12,6 +12,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /run/docker.sock:/run/docker.sock:ro
+      - ./newt-entrypoint.sh:/usr/local/bin/media-newt-entrypoint.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/newt-health"]
       interval: 30s
@@ -23,11 +24,11 @@ services:
       - NEWT_SECRET.env
     networks:
       - proxy
-    entrypoint: ["/usr/local/bin/secrets2env.sh", "/entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/usr/local/bin/media-newt-entrypoint.sh"]
     command: ["newt"]
 
   auth:
-    image: codeberg.org/stackdrift-images/keycloak:1.0.0-keycloak26.3
+    image: ghcr.io/dephekt/keycloak-image:edge-keycloak26.3
     container_name: auth
     env_file:
       - config.env
@@ -104,7 +105,7 @@ services:
       - mariadb_root_password
 
   ldap:
-    image: codeberg.org/stackdrift-images/openldap:1.0.0-openldap1.5.0
+    image: ghcr.io/dephekt/openldap-image:edge-openldap1.5.0
     container_name: ldap
     restart: unless-stopped
     env_file:
@@ -131,7 +132,7 @@ services:
       start_period: 30s
 
   homepage:
-    image: codeberg.org/stackdrift-images/homepage:1.0.4-hugo0.161.1
+    image: ghcr.io/dephekt/homepage-image:edge-hugo0.161.1
     container_name: homepage
     restart: unless-stopped
     env_file:
@@ -202,7 +203,7 @@ services:
       - proxy
 
   agent-kb:
-    image: codeberg.org/stackdrift-images/agent-working-knowledge:edge-mkdocs9.5.49
+    image: ghcr.io/dephekt/agent-working-knowledge:edge-mkdocs9.5.49
     container_name: agent-kb
     restart: unless-stopped
     labels:

@@ -1,4 +1,4 @@
-# Poll codeberg for a fresh agent-kb image every 3 minutes and run a scoped
+# Poll GHCR for a fresh agent-kb image every 3 minutes and run a scoped
 # `compose pull/up agent-kb`. compose only recreates the container when the
 # resolved image actually changed, so this is a no-op between pushes.
 */3 * * * * /usr/local/bin/redeploy.sh >> /proc/1/fd/1 2>&1

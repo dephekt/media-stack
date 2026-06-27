@@ -1,6 +1,6 @@
 # Single-purpose redeploy poller. Holds the (rw) docker socket so the
 # network-facing service-checks container never has to. On a cron it polls the
-# codeberg registry and runs a scoped `compose pull/up` of just the agent-kb
+# GHCR registry and runs a scoped `compose pull/up` of just the agent-kb
 # service when its image digest moves.
 #
 # docker:cli is Alpine-based; supercronic mirrors the service-checks cron model

@@ -63,7 +63,7 @@ Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional 
 ## Environment & secrets
 - **Core config** (`core/config.env`): `DOMAIN`, `KC_DB`, `KC_DB_USERNAME`, `KC_DB_URL`, `LDAP_BASE_DN`, `PANGOLIN_ENDPOINT`. Loaded by every stack via the Makefile's `include core/config.env`/`export`.
 - **Per-stack secrets** live under each stack's `secrets/` directory (git-ignored by `**/secrets/`). All are written by `make inject-secrets` from 1Password.
-- Single-value `.env` files (e.g. `core/secrets/NEWT_ID.env`) get exposed as Docker Compose secrets and read at runtime via the `secrets2env.sh` shim baked into the stackdrift custom images. This shim reads `/run/secrets/<NAME>.env` and exports `<NAME>` as a regular env var before exec'ing the service.
+- Single-value `.env` files get exposed as Docker Compose secrets and read at runtime via either the `secrets2env.sh` shim baked into the stackdrift custom images or a service-specific wrapper. Newt now uses the official `fosrl/newt` image with `core/newt-entrypoint.sh` exporting `NEWT_ID` and `NEWT_SECRET` from Docker secrets before exec'ing upstream.
 - A few stacks use `KEY=VALUE`-form env files (e.g. `monitoring/secrets/healthchecks.env`, `pangolin/secrets/pangolin.env`) consumed via Compose `env_file:` rather than the shim — used when the upstream image lacks the shim and doesn't accept `_FILE` env vars (traefik) or for our own custom images that just want plain env.
 - Secret rotation: change values in 1Password, run `make inject-secrets` (re-renders any templated configs too), then `make sync-secrets` to ship to the remote and `make <stack>-up` to recreate any service whose env changed.
 
