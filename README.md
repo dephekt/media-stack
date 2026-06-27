@@ -70,6 +70,7 @@ I group sets of services into separate Docker compose projects in this repo:
 - matrix: Tuwunel homeserver with Element Web for family/friends chat. Tuwunel uses built-in RocksDB (no PostgreSQL). Exposed via Pangolin at `matrix.${DOMAIN}` (homeserver) and `chat.${DOMAIN}` (Element Web). See [`matrix/README.md`](matrix/README.md).
 - penpot: self-hosted Penpot design workspace at `https://design.ai.${DOMAIN}` for grow-app HMI design review. Penpot uses Keycloak OIDC directly; Pangolin only handles ingress/TLS. See [`penpot/README.md`](penpot/README.md).
 - kanban: shared Kanboard project tracker at `kanban.ai.dephekt.net`, with a LAN fallback at `http://containers.home.arpa:8097`. See [`kanban/README.md`](kanban/README.md).
+- cci: MCP-only CCI Black Book retrieval service at `https://cci.ai.${DOMAIN}/mcp`, using bearer auth and bounded cited evidence packs. See [`cci/README.md`](cci/README.md).
 
 ## How it works (one minute)
 

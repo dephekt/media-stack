@@ -23,7 +23,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban
+STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban cci
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -37,6 +37,7 @@ SERVICES_grow    := grow-app-site
 SERVICES_matrix  := tuwunel element-web
 SERVICES_penpot  := penpot-frontend penpot-backend penpot-mcp penpot-exporter penpot-postgres penpot-valkey
 SERVICES_kanban  := kanban-router kanboard kanboard-admin-init kanboard-oauth-init kanban-ref
+SERVICES_cci     := cci-blackbook
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -60,7 +61,8 @@ REQUIRED_SECRETS := \
 	grow/secrets/FIRMWARE_UPDATE_TOKEN \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
 	penpot/secrets/penpot.env \
-	kanban/secrets/kanboard.env
+	kanban/secrets/kanboard.env \
+	cci/secrets/cci.env
 
 MEDIA_SYNC_REQUIRED := \
 	core/secrets \
@@ -93,7 +95,13 @@ MEDIA_SYNC_REQUIRED := \
 	kanban/ref \
 	kanban/kanboard \
 	kanban/keycloak \
-	kanban/docker-compose.yml
+	kanban/docker-compose.yml \
+	cci/secrets \
+	cci/app \
+	cci/Dockerfile \
+	cci/pyproject.toml \
+	cci/uv.lock \
+	cci/docker-compose.yml
 
 MEDIA_SYNC_OPTIONAL := \
 	keycloak-import/
@@ -261,7 +269,7 @@ sync-secrets-media: check-secrets
 			fi; \
 		done; \
 		echo "Syncing secrets to $(REMOTE_HOST_media)"; \
-		rsync -avz --relative $(MEDIA_SYNC_REQUIRED) $$optional_inputs $(REMOTE_HOST_media):~/docker/ && \
+		rsync -avz --exclude='__pycache__/' --exclude='*.pyc' --relative $(MEDIA_SYNC_REQUIRED) $$optional_inputs $(REMOTE_HOST_media):~/docker/ && \
 		echo "Secrets synced to $(REMOTE_HOST_media)"; \
 	else \
 		echo "Using local context, no sync needed"; \
@@ -338,7 +346,7 @@ ldap-reset-admin:
 # YAML target uses `git ls-files` so rendered/gitignored YAML (e.g. the
 # 1Password-rendered pangolin/config/config.yml) is automatically skipped.
 
-PY_LINT_PATHS   := monitoring/service-checks kanban/ref
+PY_LINT_PATHS   := monitoring/service-checks kanban/ref cci/app cci/tests
 SH_LINT_FILES   := $(shell find . -type f -name '*.sh' -not -path './.git/*' -not -path '*/secrets/*')
 YAML_LINT_FILES := $(shell git ls-files '*.yml' '*.yaml' '*.yml.template' '*.yaml.template')
 
