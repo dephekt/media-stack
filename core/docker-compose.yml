@@ -12,7 +12,7 @@ services:
       - TZ=${TZ}
     volumes:
       - /run/docker.sock:/run/docker.sock:ro
-      - ./newt-entrypoint.sh:/usr/local/bin/media-newt-entrypoint.sh:ro
+      - /home/daniel/docker/core/newt-entrypoint.sh:/usr/local/bin/media-newt-entrypoint.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "test -f /tmp/newt-health"]
       interval: 30s
@@ -240,19 +240,19 @@ volumes:
 
 secrets:
   KEYCLOAK_ADMIN_PASSWORD.env:
-    file: ./secrets/KEYCLOAK_ADMIN_PASSWORD.env
+    file: /home/daniel/docker/core/secrets/KEYCLOAK_ADMIN_PASSWORD.env
   KC_DB_PASSWORD.env:
-    file: ./secrets/DB_PASSWORD.env
+    file: /home/daniel/docker/core/secrets/DB_PASSWORD.env
   db_password:
-    file: ./secrets/DB_PASSWORD.env
+    file: /home/daniel/docker/core/secrets/DB_PASSWORD.env
   mariadb_root_password:
-    file: ./secrets/MARIADB_ROOT_PASSWORD
+    file: /home/daniel/docker/core/secrets/MARIADB_ROOT_PASSWORD
   NEWT_ID.env:
-    file: ./secrets/NEWT_ID.env
+    file: /home/daniel/docker/core/secrets/NEWT_ID.env
   NEWT_SECRET.env:
-    file: ./secrets/NEWT_SECRET.env
+    file: /home/daniel/docker/core/secrets/NEWT_SECRET.env
   ldap_admin_password:
-    file: ./secrets/LDAP_ADMIN_PASSWORD
+    file: /home/daniel/docker/core/secrets/LDAP_ADMIN_PASSWORD
 
 networks:
   proxy:

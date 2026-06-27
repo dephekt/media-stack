@@ -8,7 +8,7 @@ services:
     environment:
       - TZ=${TZ}
     volumes:
-      - ./apprise:/config
+      - /home/daniel/docker/monitoring/apprise:/config
     labels:
       - "pangolin.proxy-resources.apprise-api.name=Apprise"
       - "pangolin.proxy-resources.apprise-api.protocol=http"
@@ -82,10 +82,10 @@ services:
       - IPTV_LOCAL_USER.env
       - IPTV_LOCAL_PASS.env
     volumes:
-      - ./service-checks/checks:/checks:ro
+      - /home/daniel/docker/monitoring/service-checks/checks:/checks:ro
       # supercronic reads its crontab from the path given on the command line.
       # See service-checks/entrypoint.sh — it execs `supercronic /etc/supercronic/crontab`.
-      - ./service-checks/crontab:/etc/supercronic/crontab:ro
+      - /home/daniel/docker/monitoring/service-checks/crontab:/etc/supercronic/crontab:ro
       - monitoring-state:/state
     networks:
       - monitoring
@@ -112,7 +112,7 @@ services:
       - /run/docker.sock:/var/run/docker.sock
       # The synced core project dir (compose file + config.env + secrets);
       # read-only -- the redeploy only reads it to `up -d agent-kb`.
-      - ../core:/core:ro
+      - /home/daniel/docker/core:/core:ro
     secrets:
       - GHCR_READ_TOKEN.env
     networks:
@@ -136,12 +136,12 @@ networks:
 
 secrets:
   GHCR_READ_TOKEN.env:
-    file: ./secrets/GHCR_READ_TOKEN.env
+    file: /home/daniel/docker/monitoring/secrets/GHCR_READ_TOKEN.env
   IPTV_UPSTREAM_USER.env:
-    file: ./secrets/IPTV_UPSTREAM_USER.env
+    file: /home/daniel/docker/monitoring/secrets/IPTV_UPSTREAM_USER.env
   IPTV_UPSTREAM_PASS.env:
-    file: ./secrets/IPTV_UPSTREAM_PASS.env
+    file: /home/daniel/docker/monitoring/secrets/IPTV_UPSTREAM_PASS.env
   IPTV_LOCAL_USER.env:
-    file: ./secrets/IPTV_LOCAL_USER.env
+    file: /home/daniel/docker/monitoring/secrets/IPTV_LOCAL_USER.env
   IPTV_LOCAL_PASS.env:
-    file: ./secrets/IPTV_LOCAL_PASS.env
+    file: /home/daniel/docker/monitoring/secrets/IPTV_LOCAL_PASS.env
