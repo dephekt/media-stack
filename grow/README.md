@@ -19,7 +19,7 @@ use Keycloak.
 
 `make inject-agent-secrets` writes the grow-app runtime secrets from 1Password:
 
-- `op://Agents/Grow App/github-firmware-oci-token` ->
+- `op://Agents/GitHub/ghcr-read-packages` ->
   `grow/secrets/FIRMWARE_OCI_TOKEN`
 - `op://Agents/Grow App/firmware-update-token` ->
   `grow/secrets/FIRMWARE_UPDATE_TOKEN`
