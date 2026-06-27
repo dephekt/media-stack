@@ -9,7 +9,7 @@ Daniel's LAN-local `grow-app` site-mode HMI.
 - LAN URL: `http://<media-server-LAN-IP>:3080`.
 - MQTT broker: `mosquitto-site` on the shared `grow-mqtt` Docker network.
 - Firmware packages: private GHCR OCI artifacts under
-  `ghcr.io/dephekt/grow-fleet-firmware-*`, fetched server-side with a package
+  `ghcr.io/dephekt/grow-fleet-*`, fetched server-side with a package
   token.
 
 This is Phase 1 site mode only. It is not exposed through Pangolin and does not

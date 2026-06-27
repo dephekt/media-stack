@@ -17,7 +17,7 @@ services:
       - FIRMWARE_PACKAGE_PROVIDER=ghcr-oci
       - FIRMWARE_OCI_REGISTRY=ghcr.io
       - FIRMWARE_OCI_OWNER=dephekt
-      - FIRMWARE_OCI_PACKAGE_PREFIX=grow-fleet-firmware
+      - FIRMWARE_OCI_PACKAGE_PREFIX=grow-fleet
       - FIRMWARE_OCI_AUTH_USER=dephekt
       - FIRMWARE_OCI_TOKEN_FILE=/run/secrets/FIRMWARE_OCI_TOKEN
       - FIRMWARE_UPDATE_TOKEN_FILE=/run/secrets/FIRMWARE_UPDATE_TOKEN
