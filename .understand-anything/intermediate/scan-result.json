@@ -1,0 +1,685 @@
+{
+  "name": "media-stack",
+  "description": "Self-hosted, Docker Compose-based streaming media platform for sharing home apps (Jellyfin, Immich, the *arr stack, Matrix, and more) with family and friends. Pangolin reverse-proxy plus Keycloak provide unified SSO, social login, and automated TLS so users get a single branded login across services without installing a VPN; each top-level directory is an independent compose project orchestrated by a top-level Makefile.",
+  "languages": [
+    "dockerfile",
+    "json",
+    "makefile",
+    "markdown",
+    "php",
+    "python",
+    "shell",
+    "toml",
+    "yaml"
+  ],
+  "frameworks": [
+    "Docker",
+    "Docker Compose",
+    "Pangolin",
+    "Traefik",
+    "Keycloak",
+    "Hugo",
+    "Immich",
+    "Jellyfin",
+    "Sonarr",
+    "Radarr",
+    "FastMCP",
+    "Starlette",
+    "Uvicorn"
+  ],
+  "files": [
+    {
+      "path": ".shellcheckrc",
+      "language": "unknown",
+      "sizeLines": 2,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".yamllint.yml",
+      "language": "yaml",
+      "sizeLines": 14,
+      "fileCategory": "config"
+    },
+    {
+      "path": "AGENTS.md",
+      "language": "markdown",
+      "sizeLines": 230,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "cci/app/cci_blackbook/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/auth.py",
+      "language": "python",
+      "sizeLines": 77,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/chunking.py",
+      "language": "python",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/embeddings.py",
+      "language": "python",
+      "sizeLines": 203,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/ingest.py",
+      "language": "python",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/mcp_server.py",
+      "language": "python",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/service.py",
+      "language": "python",
+      "sizeLines": 342,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/settings.py",
+      "language": "python",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/app/cci_blackbook/store.py",
+      "language": "python",
+      "sizeLines": 254,
+      "fileCategory": "code"
+    },
+    {
+      "path": "cci/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 58,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "cci/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 46,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "cci/pyproject.toml",
+      "language": "toml",
+      "sizeLines": 30,
+      "fileCategory": "config"
+    },
+    {
+      "path": "cci/README.md",
+      "language": "markdown",
+      "sizeLines": 80,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "cci/tests/test_blackbook.py",
+      "language": "python",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "channels/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 13,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "core/config.env",
+      "language": "config",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": "core/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 260,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "core/newt-entrypoint.sh",
+      "language": "shell",
+      "sizeLines": 7,
+      "fileCategory": "script"
+    },
+    {
+      "path": "grow/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 47,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "grow/README.md",
+      "language": "markdown",
+      "sizeLines": 56,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "immich/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 112,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "immich/hwaccel.ml.yml",
+      "language": "yaml",
+      "sizeLines": 50,
+      "fileCategory": "config"
+    },
+    {
+      "path": "immich/hwaccel.transcoding.yml",
+      "language": "yaml",
+      "sizeLines": 55,
+      "fileCategory": "config"
+    },
+    {
+      "path": "immich/README.md",
+      "language": "markdown",
+      "sizeLines": 92,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "iptv/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 55,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "kanban/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 123,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "kanban/kanboard/configure-oauth.php",
+      "language": "php",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "kanban/kanboard/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 25,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "kanban/kanboard/entrypoint-with-plugins.sh",
+      "language": "shell",
+      "sizeLines": 15,
+      "fileCategory": "script"
+    },
+    {
+      "path": "kanban/keycloak/configure-kanboard-client.sh",
+      "language": "shell",
+      "sizeLines": 390,
+      "fileCategory": "script"
+    },
+    {
+      "path": "kanban/README.md",
+      "language": "markdown",
+      "sizeLines": 108,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "kanban/ref/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 7,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "kanban/ref/kanban_ref.py",
+      "language": "python",
+      "sizeLines": 219,
+      "fileCategory": "code"
+    },
+    {
+      "path": "kanban/ref/projects.yaml",
+      "language": "yaml",
+      "sizeLines": 3,
+      "fileCategory": "config"
+    },
+    {
+      "path": "kanban/ref/test_kanban_ref.py",
+      "language": "python",
+      "sizeLines": 157,
+      "fileCategory": "code"
+    },
+    {
+      "path": "kanban/router/default.conf",
+      "language": "conf",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "kanban/router/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 3,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "Makefile",
+      "language": "makefile",
+      "sizeLines": 371,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "Makefile.include",
+      "language": "include",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "matrix/config.env",
+      "language": "config",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "matrix/config/element-web.json",
+      "language": "json",
+      "sizeLines": 13,
+      "fileCategory": "config"
+    },
+    {
+      "path": "matrix/config/tuwunel.toml",
+      "language": "toml",
+      "sizeLines": 36,
+      "fileCategory": "config"
+    },
+    {
+      "path": "matrix/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 58,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "matrix/README.md",
+      "language": "markdown",
+      "sizeLines": 65,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "media/config.env",
+      "language": "config",
+      "sizeLines": 2,
+      "fileCategory": "config"
+    },
+    {
+      "path": "media/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 229,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "media/jellyfin-web-config.json",
+      "language": "json",
+      "sizeLines": 56,
+      "fileCategory": "config"
+    },
+    {
+      "path": "monitoring/agent-kb-redeploy/crontab",
+      "language": "unknown",
+      "sizeLines": 4,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/agent-kb-redeploy/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 24,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "monitoring/agent-kb-redeploy/entrypoint.sh",
+      "language": "shell",
+      "sizeLines": 15,
+      "fileCategory": "script"
+    },
+    {
+      "path": "monitoring/agent-kb-redeploy/redeploy.sh",
+      "language": "shell",
+      "sizeLines": 32,
+      "fileCategory": "script"
+    },
+    {
+      "path": "monitoring/apprise/load-config.sh",
+      "language": "shell",
+      "sizeLines": 21,
+      "fileCategory": "script"
+    },
+    {
+      "path": "monitoring/apprise/monitoring.yaml.template",
+      "language": "template",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/apprise/render-config.sh",
+      "language": "shell",
+      "sizeLines": 138,
+      "fileCategory": "script"
+    },
+    {
+      "path": "monitoring/config.env",
+      "language": "config",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "monitoring/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 147,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "monitoring/events-watcher/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 8,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "monitoring/events-watcher/watch.sh",
+      "language": "shell",
+      "sizeLines": 107,
+      "fileCategory": "script"
+    },
+    {
+      "path": "monitoring/README.md",
+      "language": "markdown",
+      "sizeLines": 179,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "monitoring/service-checks/checks/_lib.py",
+      "language": "python",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/checks/iptv-auth.py",
+      "language": "python",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/checks/iptv-canary-epg.py",
+      "language": "python",
+      "sizeLines": 203,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/checks/iptv-channel-count.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/checks/iptv-epg-freshness.py",
+      "language": "python",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/checks/iptv-renewal-warn.py",
+      "language": "python",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/crontab",
+      "language": "unknown",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "monitoring/service-checks/Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 19,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "monitoring/service-checks/entrypoint.sh",
+      "language": "shell",
+      "sizeLines": 6,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mqtt/central/config/acl",
+      "language": "unknown",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mqtt/central/config/mosquitto.conf",
+      "language": "conf",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mqtt/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 60,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "mqtt/entrypoint/central-entrypoint.sh",
+      "language": "shell",
+      "sizeLines": 12,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mqtt/entrypoint/site-entrypoint.sh",
+      "language": "shell",
+      "sizeLines": 16,
+      "fileCategory": "script"
+    },
+    {
+      "path": "mqtt/README.md",
+      "language": "markdown",
+      "sizeLines": 40,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "mqtt/site/config/acl",
+      "language": "unknown",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "mqtt/site/config/mosquitto.conf.tmpl",
+      "language": "tmpl",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "pangolin/config/config.yml.template",
+      "language": "template",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "pangolin/config/render-config.sh",
+      "language": "shell",
+      "sizeLines": 29,
+      "fileCategory": "script"
+    },
+    {
+      "path": "pangolin/config/traefik/dynamic_config.yml",
+      "language": "yaml",
+      "sizeLines": 73,
+      "fileCategory": "config"
+    },
+    {
+      "path": "pangolin/config/traefik/traefik_config.yml",
+      "language": "yaml",
+      "sizeLines": 59,
+      "fileCategory": "config"
+    },
+    {
+      "path": "pangolin/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 82,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "pangolin/README.md",
+      "language": "markdown",
+      "sizeLines": 37,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "penpot/docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 150,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "penpot/README.md",
+      "language": "markdown",
+      "sizeLines": 57,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "pyproject.toml",
+      "language": "toml",
+      "sizeLines": 16,
+      "fileCategory": "config"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 102,
+      "fileCategory": "docs"
+    }
+  ],
+  "totalFiles": 89,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    ".shellcheckrc": [],
+    ".yamllint.yml": [],
+    "AGENTS.md": [],
+    "cci/app/cci_blackbook/__init__.py": [],
+    "cci/app/cci_blackbook/auth.py": [],
+    "cci/app/cci_blackbook/chunking.py": [],
+    "cci/app/cci_blackbook/embeddings.py": [],
+    "cci/app/cci_blackbook/ingest.py": [
+      "cci/app/cci_blackbook/service.py"
+    ],
+    "cci/app/cci_blackbook/mcp_server.py": [
+      "cci/app/cci_blackbook/auth.py",
+      "cci/app/cci_blackbook/service.py",
+      "cci/app/cci_blackbook/settings.py"
+    ],
+    "cci/app/cci_blackbook/service.py": [
+      "cci/app/cci_blackbook/chunking.py",
+      "cci/app/cci_blackbook/embeddings.py",
+      "cci/app/cci_blackbook/settings.py",
+      "cci/app/cci_blackbook/store.py"
+    ],
+    "cci/app/cci_blackbook/settings.py": [],
+    "cci/app/cci_blackbook/store.py": [
+      "cci/app/cci_blackbook/chunking.py"
+    ],
+    "cci/docker-compose.yml": [],
+    "cci/Dockerfile": [],
+    "cci/pyproject.toml": [],
+    "cci/README.md": [],
+    "cci/tests/test_blackbook.py": [],
+    "channels/docker-compose.yml": [],
+    "core/config.env": [],
+    "core/docker-compose.yml": [],
+    "core/newt-entrypoint.sh": [],
+    "grow/docker-compose.yml": [],
+    "grow/README.md": [],
+    "immich/docker-compose.yml": [],
+    "immich/hwaccel.ml.yml": [],
+    "immich/hwaccel.transcoding.yml": [],
+    "immich/README.md": [],
+    "iptv/docker-compose.yml": [],
+    "kanban/docker-compose.yml": [],
+    "kanban/kanboard/configure-oauth.php": [],
+    "kanban/kanboard/Dockerfile": [],
+    "kanban/kanboard/entrypoint-with-plugins.sh": [],
+    "kanban/keycloak/configure-kanboard-client.sh": [],
+    "kanban/README.md": [],
+    "kanban/ref/Dockerfile": [],
+    "kanban/ref/kanban_ref.py": [],
+    "kanban/ref/projects.yaml": [],
+    "kanban/ref/test_kanban_ref.py": [
+      "kanban/ref/kanban_ref.py"
+    ],
+    "kanban/router/default.conf": [],
+    "kanban/router/Dockerfile": [],
+    "Makefile": [],
+    "Makefile.include": [],
+    "matrix/config.env": [],
+    "matrix/config/element-web.json": [],
+    "matrix/config/tuwunel.toml": [],
+    "matrix/docker-compose.yml": [],
+    "matrix/README.md": [],
+    "media/config.env": [],
+    "media/docker-compose.yml": [],
+    "media/jellyfin-web-config.json": [],
+    "monitoring/agent-kb-redeploy/crontab": [],
+    "monitoring/agent-kb-redeploy/Dockerfile": [],
+    "monitoring/agent-kb-redeploy/entrypoint.sh": [],
+    "monitoring/agent-kb-redeploy/redeploy.sh": [],
+    "monitoring/apprise/load-config.sh": [],
+    "monitoring/apprise/monitoring.yaml.template": [],
+    "monitoring/apprise/render-config.sh": [],
+    "monitoring/config.env": [],
+    "monitoring/docker-compose.yml": [],
+    "monitoring/events-watcher/Dockerfile": [],
+    "monitoring/events-watcher/watch.sh": [],
+    "monitoring/README.md": [],
+    "monitoring/service-checks/checks/_lib.py": [],
+    "monitoring/service-checks/checks/iptv-auth.py": [
+      "monitoring/service-checks/checks/_lib.py"
+    ],
+    "monitoring/service-checks/checks/iptv-canary-epg.py": [
+      "monitoring/service-checks/checks/_lib.py"
+    ],
+    "monitoring/service-checks/checks/iptv-channel-count.py": [
+      "monitoring/service-checks/checks/_lib.py"
+    ],
+    "monitoring/service-checks/checks/iptv-epg-freshness.py": [
+      "monitoring/service-checks/checks/_lib.py"
+    ],
+    "monitoring/service-checks/checks/iptv-renewal-warn.py": [
+      "monitoring/service-checks/checks/_lib.py"
+    ],
+    "monitoring/service-checks/crontab": [],
+    "monitoring/service-checks/Dockerfile": [],
+    "monitoring/service-checks/entrypoint.sh": [],
+    "mqtt/central/config/acl": [],
+    "mqtt/central/config/mosquitto.conf": [],
+    "mqtt/docker-compose.yml": [],
+    "mqtt/entrypoint/central-entrypoint.sh": [],
+    "mqtt/entrypoint/site-entrypoint.sh": [],
+    "mqtt/README.md": [],
+    "mqtt/site/config/acl": [],
+    "mqtt/site/config/mosquitto.conf.tmpl": [],
+    "pangolin/config/config.yml.template": [],
+    "pangolin/config/render-config.sh": [],
+    "pangolin/config/traefik/dynamic_config.yml": [],
+    "pangolin/config/traefik/traefik_config.yml": [],
+    "pangolin/docker-compose.yml": [],
+    "pangolin/README.md": [],
+    "penpot/docker-compose.yml": [],
+    "penpot/README.md": [],
+    "pyproject.toml": [],
+    "README.md": []
+  }
+}

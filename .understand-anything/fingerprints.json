@@ -1,0 +1,2713 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "8e2e49daaca33cccd1d7c2831ef62fcb604e8981",
+  "generatedAt": "2026-06-27T17:16:20.393Z",
+  "files": {
+    ".shellcheckrc": {
+      "filePath": ".shellcheckrc",
+      "contentHash": "32d46de7380416f26df77927fc6814e4ddeeb0c60e0f8b80f55159bc1977124f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": false
+    },
+    ".yamllint.yml": {
+      "filePath": ".yamllint.yml",
+      "contentHash": "1519eb5ff1d137e42439adfa14f70134169190a94f00e9169f6c5e3c32e61058",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 15,
+      "hasStructuralAnalysis": true
+    },
+    "AGENTS.md": {
+      "filePath": "AGENTS.md",
+      "contentHash": "2a9d4b3ac3e3eb35f724a39a3b67e69c9ed967063698616fefb5dd1626b1657d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 231,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/__init__.py": {
+      "filePath": "cci/app/cci_blackbook/__init__.py",
+      "contentHash": "a1b866b1df63b483d3ca6780b83f8fbee9d7726bb124563c107e7432bb6d5342",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/auth.py": {
+      "filePath": "cci/app/cci_blackbook/auth.py",
+      "contentHash": "7d667b9c081621fb1e17789d929025a2cdc51f6218e54d7bf49023df6d3d5a94",
+      "functions": [
+        {
+          "name": "expected_token",
+          "params": [
+            "token_env_names"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "is_authorized",
+          "params": [
+            "header_value",
+            "expected"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "_is_public_path",
+          "params": [
+            "path",
+            "public_paths"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [
+        {
+          "name": "BearerAuthMiddleware",
+          "methods": [
+            "__init__",
+            "dispatch"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 35
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Sequence"
+          ]
+        },
+        {
+          "source": "secrets",
+          "specifiers": [
+            "compare_digest"
+          ]
+        }
+      ],
+      "exports": [
+        "BearerAuthMiddleware",
+        "expected_token",
+        "is_authorized",
+        "_is_public_path"
+      ],
+      "totalLines": 78,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/chunking.py": {
+      "filePath": "cci/app/cci_blackbook/chunking.py",
+      "contentHash": "e4dc0a1a3d14a7e277f717ba89777306786a3c3869a06cbdd6c8feb29b80c4e7",
+      "functions": [
+        {
+          "name": "normalize_text",
+          "params": [
+            "text"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "chunk_page",
+          "params": [
+            "page",
+            "text",
+            "chunk_chars",
+            "overlap_chars"
+          ],
+          "returnType": "list[Chunk]",
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "chunk_pages",
+          "params": [
+            "pages",
+            "chunk_chars",
+            "overlap_chars"
+          ],
+          "returnType": "list[Chunk]",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "_nearest_boundary",
+          "params": [
+            "text",
+            "start",
+            "target_end"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_advance_to_word_boundary",
+          "params": [
+            "text",
+            "cursor"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [
+        {
+          "name": "PageText",
+          "methods": [],
+          "properties": [
+            "page",
+            "text"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "Chunk",
+          "methods": [],
+          "properties": [
+            "chunk_id",
+            "page",
+            "chunk_index",
+            "text",
+            "char_start",
+            "char_end"
+          ],
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "imports": [
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Iterable"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        }
+      ],
+      "exports": [
+        "PageText",
+        "Chunk",
+        "normalize_text",
+        "chunk_page",
+        "chunk_pages",
+        "_nearest_boundary",
+        "_advance_to_word_boundary"
+      ],
+      "totalLines": 117,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/embeddings.py": {
+      "filePath": "cci/app/cci_blackbook/embeddings.py",
+      "contentHash": "b1b0072796ce6e89cfb478af6081a93393d78859cb67734344553c8c178e7e35",
+      "functions": [
+        {
+          "name": "build_embedding_provider",
+          "params": [
+            "backend",
+            "model_name",
+            "cache_dir",
+            "openvino_device",
+            "render_device"
+          ],
+          "returnType": "EmbeddingProvider",
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "_normalize",
+          "params": [
+            "vector"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_prefix",
+          "params": [
+            "prefix",
+            "texts"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_available_onnx_providers",
+          "params": [],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_accepts_kwarg",
+          "params": [
+            "callable_obj",
+            "kwarg"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_active_session_providers",
+          "params": [
+            "model"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [
+        {
+          "name": "EmbeddingProvider",
+          "methods": [
+            "embed_passages",
+            "embed_query",
+            "status"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "HashEmbeddingProvider",
+          "methods": [
+            "__init__",
+            "embed_passages",
+            "embed_query",
+            "status",
+            "_embed"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "FastEmbedProvider",
+          "methods": [
+            "__init__",
+            "embed_passages",
+            "embed_query",
+            "status",
+            "_ensure_model"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 85
+        }
+      ],
+      "imports": [
+        {
+          "source": "hashlib",
+          "specifiers": [
+            "hashlib"
+          ]
+        },
+        {
+          "source": "inspect",
+          "specifiers": [
+            "inspect"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "typing",
+          "specifiers": [
+            "Protocol"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        }
+      ],
+      "exports": [
+        "EmbeddingProvider",
+        "HashEmbeddingProvider",
+        "FastEmbedProvider",
+        "build_embedding_provider",
+        "_normalize",
+        "_prefix",
+        "_available_onnx_providers",
+        "_accepts_kwarg",
+        "_active_session_providers"
+      ],
+      "totalLines": 204,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/ingest.py": {
+      "filePath": "cci/app/cci_blackbook/ingest.py",
+      "contentHash": "00bfc71358d8bf2ea9efe8d989d3b77b3c9ead84d37748656a8c3813c0e74e95",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": ".service",
+          "specifiers": [
+            "BlackBookService"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 21,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/mcp_server.py": {
+      "filePath": "cci/app/cci_blackbook/mcp_server.py",
+      "contentHash": "eaa4b916df3233df6047c40d06638b80baf1ca30a73f72d947f154656515663c",
+      "functions": [
+        {
+          "name": "ask_blackbook",
+          "params": [
+            "question",
+            "crop_context",
+            "facility_context",
+            "max_citations"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "blackbook_search",
+          "params": [
+            "query",
+            "limit",
+            "mode"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "blackbook_read_citation",
+          "params": [
+            "chunk_id"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "blackbook_status",
+          "params": [],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "healthz",
+          "params": [
+            "_request"
+          ],
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "fastmcp",
+          "specifiers": [
+            "FastMCP"
+          ]
+        },
+        {
+          "source": "starlette.middleware",
+          "specifiers": [
+            "Middleware"
+          ]
+        },
+        {
+          "source": "starlette.responses",
+          "specifiers": [
+            "JSONResponse"
+          ]
+        },
+        {
+          "source": ".auth",
+          "specifiers": [
+            "BearerAuthMiddleware",
+            "expected_token"
+          ]
+        },
+        {
+          "source": ".service",
+          "specifiers": [
+            "BlackBookService"
+          ]
+        },
+        {
+          "source": ".settings",
+          "specifiers": [
+            "load_settings"
+          ]
+        }
+      ],
+      "exports": [
+        "ask_blackbook",
+        "blackbook_search",
+        "blackbook_read_citation",
+        "blackbook_status",
+        "healthz",
+        "main"
+      ],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/service.py": {
+      "filePath": "cci/app/cci_blackbook/service.py",
+      "contentHash": "474243887a0b876b4517ec51b86fda84633bb1dfeeba4a740ceb5bc55e7ee739",
+      "functions": [
+        {
+          "name": "_embed_all",
+          "params": [
+            "provider",
+            "texts",
+            "batch_size"
+          ],
+          "returnType": "list[np.ndarray]",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_read_pdf_pages",
+          "params": [
+            "path"
+          ],
+          "returnType": "list[PageText]",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_source_status",
+          "params": [
+            "path"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_source_metadata",
+          "params": [
+            "path"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_index_current",
+          "params": [
+            "index_status",
+            "source_metadata",
+            "settings"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_fuse_hits",
+          "params": [
+            "named_hit_lists",
+            "limit"
+          ],
+          "returnType": "list[FusedHit]",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "_format_hit",
+          "params": [
+            "item",
+            "query"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "_citation",
+          "params": [
+            "hit"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_excerpt",
+          "params": [
+            "text",
+            "query",
+            "max_chars"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "_bounded_text",
+          "params": [
+            "text",
+            "max_chars"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_confidence_notes",
+          "params": [
+            "results",
+            "mode",
+            "provider_status"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_clamp",
+          "params": [
+            "value",
+            "low",
+            "high"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "classes": [
+        {
+          "name": "IndexUnavailable",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "FusedHit",
+          "methods": [],
+          "properties": [
+            "hit",
+            "score",
+            "sources"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "BlackBookService",
+          "methods": [
+            "__init__",
+            "status",
+            "ensure_index",
+            "rebuild_from_pages",
+            "search",
+            "ask",
+            "read_citation",
+            "_new_provider"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 193
+        }
+      ],
+      "imports": [
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": ".chunking",
+          "specifiers": [
+            "PageText",
+            "chunk_pages"
+          ]
+        },
+        {
+          "source": ".embeddings",
+          "specifiers": [
+            "EmbeddingProvider",
+            "HashEmbeddingProvider",
+            "build_embedding_provider"
+          ]
+        },
+        {
+          "source": ".settings",
+          "specifiers": [
+            "Settings",
+            "load_settings"
+          ]
+        },
+        {
+          "source": ".store",
+          "specifiers": [
+            "BlackBookIndex",
+            "SearchHit"
+          ]
+        }
+      ],
+      "exports": [
+        "IndexUnavailable",
+        "FusedHit",
+        "BlackBookService",
+        "_embed_all",
+        "_read_pdf_pages",
+        "_source_status",
+        "_source_metadata",
+        "_index_current",
+        "_fuse_hits",
+        "_format_hit",
+        "_citation",
+        "_excerpt",
+        "_bounded_text",
+        "_confidence_notes",
+        "_clamp"
+      ],
+      "totalLines": 343,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/settings.py": {
+      "filePath": "cci/app/cci_blackbook/settings.py",
+      "contentHash": "9c80406bbe84953b43e9d5375645e4f281c464d46c185518051ee380083a8f00",
+      "functions": [
+        {
+          "name": "_int_from_env",
+          "params": [
+            "name",
+            "default"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "load_settings",
+          "params": [],
+          "returnType": "Settings",
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "classes": [
+        {
+          "name": "Settings",
+          "methods": [],
+          "properties": [
+            "source_pdf",
+            "index_dir",
+            "cache_dir",
+            "sqlite_path",
+            "embedding_backend",
+            "embedding_model",
+            "openvino_device",
+            "render_device",
+            "chunk_chars",
+            "chunk_overlap_chars",
+            "min_vector_score",
+            "embedding_batch_size",
+            "host",
+            "port",
+            "log_level"
+          ],
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "Settings",
+        "_int_from_env",
+        "load_settings"
+      ],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "cci/app/cci_blackbook/store.py": {
+      "filePath": "cci/app/cci_blackbook/store.py",
+      "contentHash": "abe88aa921c0daf8ba177dcf463fab7242780c67535c5c5037ba34aa7d2ac606",
+      "functions": [
+        {
+          "name": "_serialize_vector",
+          "params": [
+            "vector"
+          ],
+          "returnType": "bytes",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_deserialize_vector",
+          "params": [
+            "blob"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "_normalize",
+          "params": [
+            "vector"
+          ],
+          "returnType": "np.ndarray",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_fts_query",
+          "params": [
+            "query"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "_quote_fts_term",
+          "params": [
+            "term"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "merge_unique_hits",
+          "params": [
+            "hit_lists"
+          ],
+          "returnType": "dict[str, SearchHit]",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [
+        {
+          "name": "SearchHit",
+          "methods": [],
+          "properties": [
+            "chunk_id",
+            "page",
+            "chunk_index",
+            "text",
+            "score",
+            "source"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "BlackBookIndex",
+          "methods": [
+            "__init__",
+            "connect",
+            "initialize",
+            "rebuild",
+            "status",
+            "read_chunk",
+            "search_fts",
+            "search_vector",
+            "_create_schema"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 195
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sqlite3",
+          "specifiers": [
+            "sqlite3"
+          ]
+        },
+        {
+          "source": "collections.abc",
+          "specifiers": [
+            "Iterable"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": ".chunking",
+          "specifiers": [
+            "Chunk"
+          ]
+        }
+      ],
+      "exports": [
+        "SearchHit",
+        "BlackBookIndex",
+        "_serialize_vector",
+        "_deserialize_vector",
+        "_normalize",
+        "_fts_query",
+        "_quote_fts_term",
+        "merge_unique_hits"
+      ],
+      "totalLines": 255,
+      "hasStructuralAnalysis": true
+    },
+    "cci/docker-compose.yml": {
+      "filePath": "cci/docker-compose.yml",
+      "contentHash": "7610d7b07a667daf23bc762e0358737d7698e5ea80c7919b542bc76af56ee128",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "cci/Dockerfile": {
+      "filePath": "cci/Dockerfile",
+      "contentHash": "412d344dcdc356813fa530bcfa83318e50c537a69c4dd261e694368ca760893f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 47,
+      "hasStructuralAnalysis": true
+    },
+    "cci/pyproject.toml": {
+      "filePath": "cci/pyproject.toml",
+      "contentHash": "51867e5065d87b53c67a3c8b5e93602aa7aef0bf08299bbb2d5dfda768b688e8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "cci/README.md": {
+      "filePath": "cci/README.md",
+      "contentHash": "888cbf85036acd9ca51221ee71b8a763b28bce068dd7838f95da17e522ecd2b6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "cci/tests/test_blackbook.py": {
+      "filePath": "cci/tests/test_blackbook.py",
+      "contentHash": "cce482869b62fc69b72573eefa46e7d11d4f04b8e92e012e119a7ad6099169de",
+      "functions": [],
+      "classes": [
+        {
+          "name": "ChunkingTest",
+          "methods": [
+            "test_chunk_page_preserves_page_and_advances"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "AuthTest",
+          "methods": [
+            "test_bearer_auth_uses_exact_token"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "BlackBookServiceTest",
+          "methods": [
+            "setUp",
+            "tearDown",
+            "test_search_returns_bounded_cited_evidence",
+            "test_read_citation_is_bounded",
+            "test_search_abstains_when_index_source_is_missing",
+            "_indexed_service"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 85
+        }
+      ],
+      "imports": [
+        {
+          "source": "tempfile",
+          "specifiers": [
+            "tempfile"
+          ]
+        },
+        {
+          "source": "unittest",
+          "specifiers": [
+            "unittest"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "replace"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "cci_blackbook.auth",
+          "specifiers": [
+            "is_authorized"
+          ]
+        },
+        {
+          "source": "cci_blackbook.chunking",
+          "specifiers": [
+            "PageText",
+            "chunk_page"
+          ]
+        },
+        {
+          "source": "cci_blackbook.embeddings",
+          "specifiers": [
+            "HashEmbeddingProvider"
+          ]
+        },
+        {
+          "source": "cci_blackbook.service",
+          "specifiers": [
+            "BlackBookService"
+          ]
+        },
+        {
+          "source": "cci_blackbook.settings",
+          "specifiers": [
+            "Settings"
+          ]
+        }
+      ],
+      "exports": [
+        "ChunkingTest",
+        "AuthTest",
+        "BlackBookServiceTest"
+      ],
+      "totalLines": 125,
+      "hasStructuralAnalysis": true
+    },
+    "channels/docker-compose.yml": {
+      "filePath": "channels/docker-compose.yml",
+      "contentHash": "9c797559c3123b22c28b0926b94b61fb70d9b483f5e4700d0755fdcf27e78d5c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "core/config.env": {
+      "filePath": "core/config.env",
+      "contentHash": "3393637860d04f6f1b6e43264b88a47bd6cfef0b98bc36403a9ed6881a4f9e1f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "core/docker-compose.yml": {
+      "filePath": "core/docker-compose.yml",
+      "contentHash": "749381960b024173d2db75f1f320b86775316eb74047f6e71d530e41f8e8be46",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 261,
+      "hasStructuralAnalysis": true
+    },
+    "core/newt-entrypoint.sh": {
+      "filePath": "core/newt-entrypoint.sh",
+      "contentHash": "62ff2e3530250e770bd421b173213ad5930f77c8f1b3ef641f48ff7fa12ee1c3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "grow/docker-compose.yml": {
+      "filePath": "grow/docker-compose.yml",
+      "contentHash": "df06380749825cf5148164dc5fe237405f13a702f280f511d884dbf1c411ce54",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 48,
+      "hasStructuralAnalysis": true
+    },
+    "grow/README.md": {
+      "filePath": "grow/README.md",
+      "contentHash": "7780c30f0144fd439f8c81e1115638ba7c94d14b3008d0c70d38abcf7097e25b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 57,
+      "hasStructuralAnalysis": true
+    },
+    "immich/docker-compose.yml": {
+      "filePath": "immich/docker-compose.yml",
+      "contentHash": "21d4003fb0c77c85e3744649b45c7b44677c5ddabdd89c0e4163a15cbb462711",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 113,
+      "hasStructuralAnalysis": true
+    },
+    "immich/hwaccel.ml.yml": {
+      "filePath": "immich/hwaccel.ml.yml",
+      "contentHash": "53d404ae97f4f4895cbe38cbc1c901defe4444f5e06bb3e8090789b807cb5eac",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 51,
+      "hasStructuralAnalysis": true
+    },
+    "immich/hwaccel.transcoding.yml": {
+      "filePath": "immich/hwaccel.transcoding.yml",
+      "contentHash": "a50d01758fdbd468270ef7104dce6f282e217ef916238098ac94a70ca8e4c326",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "immich/README.md": {
+      "filePath": "immich/README.md",
+      "contentHash": "547d0f12264ad91e424089e90abd071d0daa3a1528cc3b3954aa21eb53b61d0d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "iptv/docker-compose.yml": {
+      "filePath": "iptv/docker-compose.yml",
+      "contentHash": "570f511d1f91e7732a49fed53349a0df6cc3216ec22263e70dd45c6c4bb3b10d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 56,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/docker-compose.yml": {
+      "filePath": "kanban/docker-compose.yml",
+      "contentHash": "642f9016b4c9584699d21f3aeaf8ff440fabc5d4f36fda0f409efb9cd467cd6f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 124,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/kanboard/configure-oauth.php": {
+      "filePath": "kanban/kanboard/configure-oauth.php",
+      "contentHash": "84a495414939ae36ec5c8157ecb0d63d9952cd398447d39395c7092cb0adf852",
+      "functions": [
+        {
+          "name": "env_value",
+          "params": [
+            "$name",
+            "$default"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "placeholders",
+          "params": [
+            "$values"
+          ],
+          "returnType": "string",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "cleanup_legacy_groups",
+          "params": [
+            "$db",
+            "$externalIds"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 32
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [
+        "env_value",
+        "placeholders",
+        "cleanup_legacy_groups"
+      ],
+      "totalLines": 117,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/kanboard/Dockerfile": {
+      "filePath": "kanban/kanboard/Dockerfile",
+      "contentHash": "517f7fb73f8834f6be9d2d31d719dfaf8039ebff1b98216d133daa45cd981aa9",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 26,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/kanboard/entrypoint-with-plugins.sh": {
+      "filePath": "kanban/kanboard/entrypoint-with-plugins.sh",
+      "contentHash": "49ebd7185ae8f1705a231d8f307206056506687dd2d58e220a9361ec9f820f6c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/keycloak/configure-kanboard-client.sh": {
+      "filePath": "kanban/keycloak/configure-kanboard-client.sh",
+      "contentHash": "0c48e97bc340538d231f4becd69236b4b423882bc6617ba64a63adef894e7282",
+      "functions": [
+        {
+          "name": "require_cmd",
+          "params": [],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "cleanup",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "kc",
+          "params": [],
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "json_get",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "urlencode",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "flow_executions_endpoint",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "client_uuid",
+          "params": [],
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "group_id_by_name",
+          "params": [],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "flow_id_by_alias",
+          "params": [],
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "ensure_client",
+          "params": [],
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "disable_client_pkce",
+          "params": [],
+          "exported": false,
+          "lineCount": 12
+        },
+        {
+          "name": "ensure_client_role",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "ensure_group",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "assign_group_role",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "add_user_to_group",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "set_execution_requirement",
+          "params": [],
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "copy_group_members",
+          "params": [],
+          "exported": false,
+          "lineCount": 16
+        },
+        {
+          "name": "migrate_legacy_group_members",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "remove_group_by_name",
+          "params": [],
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "remove_client_role",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "remove_legacy_access_model",
+          "params": [],
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "remove_group_mapper",
+          "params": [],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "ensure_auth_flow",
+          "params": [],
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "ensure_gate_flow",
+          "params": [],
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "ensure_flow_execution",
+          "params": [],
+          "exported": false,
+          "lineCount": 49
+        },
+        {
+          "name": "store_client_secret",
+          "params": [],
+          "exported": false,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 391,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/README.md": {
+      "filePath": "kanban/README.md",
+      "contentHash": "cb3640abb090b5dfd1f15385a3844653f7a99b2339e126a6b8a417aa9e5c023b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 109,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/ref/Dockerfile": {
+      "filePath": "kanban/ref/Dockerfile",
+      "contentHash": "aac33c5c5c2506377b22c5a759c65635eb0c9efa8dc15b09cf04bafdc46a13bc",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/ref/kanban_ref.py": {
+      "filePath": "kanban/ref/kanban_ref.py",
+      "contentHash": "b12a668c73123d0e797e516f0a3dc1aef527cb735713de341582f3c2d0f2cd1d",
+      "functions": [
+        {
+          "name": "load_projects",
+          "params": [
+            "path"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "parse_minimal_projects",
+          "params": [
+            "raw"
+          ],
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "api_call",
+          "params": [
+            "method",
+            "*params"
+          ],
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "request_origin",
+          "params": [
+            "request_headers"
+          ],
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "private_task_url",
+          "params": [
+            "request_headers",
+            "task"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "public_task_url",
+          "params": [
+            "request_headers",
+            "task",
+            "project_record"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "is_enabled",
+          "params": [
+            "value"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "task_url",
+          "params": [
+            "request_headers",
+            "project_record",
+            "task"
+          ],
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "reference_candidates",
+          "params": [
+            "ref"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [
+        {
+          "name": "KanboardError",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "Handler",
+          "methods": [
+            "do_GET",
+            "do_HEAD",
+            "handle_request",
+            "log_message",
+            "send_json"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 77
+        }
+      ],
+      "imports": [
+        {
+          "source": "base64",
+          "specifiers": [
+            "base64"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "urllib.error",
+          "specifiers": [
+            "urllib.error"
+          ]
+        },
+        {
+          "source": "urllib.parse",
+          "specifiers": [
+            "urllib.parse"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "http.server",
+          "specifiers": [
+            "BaseHTTPRequestHandler",
+            "ThreadingHTTPServer"
+          ]
+        }
+      ],
+      "exports": [
+        "KanboardError",
+        "load_projects",
+        "parse_minimal_projects",
+        "api_call",
+        "request_origin",
+        "private_task_url",
+        "public_task_url",
+        "is_enabled",
+        "task_url",
+        "reference_candidates",
+        "Handler"
+      ],
+      "totalLines": 220,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/ref/projects.yaml": {
+      "filePath": "kanban/ref/projects.yaml",
+      "contentHash": "371592c5d0a2882aa46b7238d5c421e31ef4007f2c8a9ebab841c1b4c084317d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/ref/test_kanban_ref.py": {
+      "filePath": "kanban/ref/test_kanban_ref.py",
+      "contentHash": "a24faa8e66fe7e6e3c22143e2d5520d68ae24f0fc4068028f2fe7d1be6f5c963",
+      "functions": [],
+      "classes": [
+        {
+          "name": "KanbanRefHandlerTest",
+          "methods": [
+            "setUp",
+            "tearDown",
+            "api_call",
+            "request",
+            "test_public_project_redirects_to_public_task_url",
+            "test_forgejo_reference_falls_back_to_padded_kanboard_reference",
+            "test_forgejo_reference_prefers_exact_kanboard_reference",
+            "test_private_project_redirects_to_authenticated_task_url",
+            "test_unknown_prefix_returns_not_found_without_api_lookup",
+            "test_short_leading_zero_reference_is_not_a_route",
+            "test_public_project_without_token_returns_service_unavailable"
+          ],
+          "properties": [],
+          "exported": true,
+          "lineCount": 142
+        }
+      ],
+      "imports": [
+        {
+          "source": "http.client",
+          "specifiers": [
+            "http.client"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "tempfile",
+          "specifiers": [
+            "tempfile"
+          ]
+        },
+        {
+          "source": "threading",
+          "specifiers": [
+            "threading"
+          ]
+        },
+        {
+          "source": "unittest",
+          "specifiers": [
+            "unittest"
+          ]
+        },
+        {
+          "source": "http.server",
+          "specifiers": [
+            "ThreadingHTTPServer"
+          ]
+        },
+        {
+          "source": "unittest",
+          "specifiers": [
+            "mock"
+          ]
+        },
+        {
+          "source": "kanban_ref",
+          "specifiers": [
+            "kanban_ref"
+          ]
+        }
+      ],
+      "exports": [
+        "KanbanRefHandlerTest"
+      ],
+      "totalLines": 158,
+      "hasStructuralAnalysis": true
+    },
+    "kanban/router/default.conf": {
+      "filePath": "kanban/router/default.conf",
+      "contentHash": "9946561bd8fba409c8f8e0be80d35c2667ff48ec0dc3ff587ddb00a812ace024",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 28,
+      "hasStructuralAnalysis": false
+    },
+    "kanban/router/Dockerfile": {
+      "filePath": "kanban/router/Dockerfile",
+      "contentHash": "3690b85e624852640ecdfd9a0243056fcf8165a2570380abd71c70b55d66a153",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 4,
+      "hasStructuralAnalysis": true
+    },
+    "Makefile": {
+      "filePath": "Makefile",
+      "contentHash": "0a8e6430c570d6b6cd2e294e0814f2584b2198cf9762a97dfd8f96ce3179e65a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 373,
+      "hasStructuralAnalysis": true
+    },
+    "Makefile.include": {
+      "filePath": "Makefile.include",
+      "contentHash": "2dbf326397c3511226e5adba11254ce745341c546e35fed93247e7dc1fac48db",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 80,
+      "hasStructuralAnalysis": false
+    },
+    "matrix/config.env": {
+      "filePath": "matrix/config.env",
+      "contentHash": "82f5eacb61ce4a2cc8970bdb255317e0581e96e79ff4672db935ac9303512a7d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "matrix/config/element-web.json": {
+      "filePath": "matrix/config/element-web.json",
+      "contentHash": "00a053be8320789e789fa20107a623485b711fb8fa3853d426c2c7ae360447f7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 14,
+      "hasStructuralAnalysis": true
+    },
+    "matrix/config/tuwunel.toml": {
+      "filePath": "matrix/config/tuwunel.toml",
+      "contentHash": "e5805cdbc9712c4a84047b275201622809c15011efbf4925640194790e0e143e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 37,
+      "hasStructuralAnalysis": true
+    },
+    "matrix/docker-compose.yml": {
+      "filePath": "matrix/docker-compose.yml",
+      "contentHash": "991dafc3f3a39fcf00ab7b3ee6b4d1a63b9e6ae264eed8dcf214da3331ec0058",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 59,
+      "hasStructuralAnalysis": true
+    },
+    "matrix/README.md": {
+      "filePath": "matrix/README.md",
+      "contentHash": "1226dfbf9730c136ce812964496e3d4bc065e5c46d1edd7cb3c3a4a93cbab2cd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 66,
+      "hasStructuralAnalysis": true
+    },
+    "media/config.env": {
+      "filePath": "media/config.env",
+      "contentHash": "531ccb001b5615670b2cffd27eee8630ce56835485d46c8d4b01c79642a4b83d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 3,
+      "hasStructuralAnalysis": true
+    },
+    "media/docker-compose.yml": {
+      "filePath": "media/docker-compose.yml",
+      "contentHash": "423601a98bca257807f2cf3f37f5e9953be3a4370afa5c33aa0c6293f0798306",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 230,
+      "hasStructuralAnalysis": true
+    },
+    "media/jellyfin-web-config.json": {
+      "filePath": "media/jellyfin-web-config.json",
+      "contentHash": "10758967b1571a1d4b6eb432e74fdd8e1c32ba4ca835a5559edb2a65fbeafab7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 57,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/agent-kb-redeploy/crontab": {
+      "filePath": "monitoring/agent-kb-redeploy/crontab",
+      "contentHash": "3c2b5bf6ad18a8d92f2d3df4f7e9b278c190524c91ae06e69b4bac4fd4d1d9fa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 5,
+      "hasStructuralAnalysis": false
+    },
+    "monitoring/agent-kb-redeploy/Dockerfile": {
+      "filePath": "monitoring/agent-kb-redeploy/Dockerfile",
+      "contentHash": "70063c79439664b3f835b5f6302c9053a7cc12b40911c201de7d8b37e7384373",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/agent-kb-redeploy/entrypoint.sh": {
+      "filePath": "monitoring/agent-kb-redeploy/entrypoint.sh",
+      "contentHash": "1d39c5591918d4939cf5a16fe1d78f767f345d6146e6b802948b5df0b2e6be74",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/agent-kb-redeploy/redeploy.sh": {
+      "filePath": "monitoring/agent-kb-redeploy/redeploy.sh",
+      "contentHash": "224f355b80d461810f1906150980dd8d8c15d8318618b75d35e1a2e50b93fe8b",
+      "functions": [
+        {
+          "name": "img",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 33,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/apprise/load-config.sh": {
+      "filePath": "monitoring/apprise/load-config.sh",
+      "contentHash": "9a8c9369c9e02f356fba528db8180df75613f8b133bba222ef8061eb6ef1070d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/apprise/monitoring.yaml.template": {
+      "filePath": "monitoring/apprise/monitoring.yaml.template",
+      "contentHash": "813e631b7fdbbd8602a4abdc942c5bedb527f05e4d3e43ab2034a9b9991155fb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 91,
+      "hasStructuralAnalysis": false
+    },
+    "monitoring/apprise/render-config.sh": {
+      "filePath": "monitoring/apprise/render-config.sh",
+      "contentHash": "f92989beb1c717dc7f0ac899807fda745bb6d3f810099ee99fc9d05dc96a2876",
+      "functions": [
+        {
+          "name": "parse_discord_webhook",
+          "params": [],
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "urlencode",
+          "params": [],
+          "exported": false,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 139,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/config.env": {
+      "filePath": "monitoring/config.env",
+      "contentHash": "041532b88b353d9e59b80716cf952cb87b14b7152ebedfda0537678425a2166d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/docker-compose.yml": {
+      "filePath": "monitoring/docker-compose.yml",
+      "contentHash": "75371f035bc855f066595b05c325f66d5945babe129a4453ccd75b4c2276fa28",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 148,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/events-watcher/Dockerfile": {
+      "filePath": "monitoring/events-watcher/Dockerfile",
+      "contentHash": "7cad518f9de73329b94623293a05e9e5eb73c2fc4f337eafa2cde6c9158d492e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/events-watcher/watch.sh": {
+      "filePath": "monitoring/events-watcher/watch.sh",
+      "contentHash": "019ae6ecffc3d0e41fd981e157c51ca9a722bab53765909a87fd8024fff2e4fd",
+      "functions": [
+        {
+          "name": "emit",
+          "params": [],
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "prev_status",
+          "params": [],
+          "exported": false,
+          "lineCount": 1
+        },
+        {
+          "name": "set_status",
+          "params": [],
+          "exported": false,
+          "lineCount": 5
+        }
+      ],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 108,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/README.md": {
+      "filePath": "monitoring/README.md",
+      "contentHash": "7a92a05f2b81ccedf132617f7f995726893411ecefc893dec8a719947727d4fa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 180,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/_lib.py": {
+      "filePath": "monitoring/service-checks/checks/_lib.py",
+      "contentHash": "cc032e5971cdc28d778ea0b576b626590401d84a965c537353a8965c29f6ed66",
+      "functions": [
+        {
+          "name": "read_secret",
+          "params": [
+            "name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 2
+        },
+        {
+          "name": "notify",
+          "params": [
+            "tags",
+            "title",
+            "body"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "_hc_ping",
+          "params": [
+            "script_name",
+            "suffix"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "state_get",
+          "params": [
+            "key",
+            "default"
+          ],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "state_set",
+          "params": [
+            "key",
+            "value"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "check_main",
+          "params": [
+            "script_name"
+          ],
+          "exported": true,
+          "lineCount": 41
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "functools",
+          "specifiers": [
+            "functools"
+          ]
+        },
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "traceback",
+          "specifiers": [
+            "traceback"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "contextlib",
+          "specifiers": [
+            "suppress"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "read_secret",
+        "notify",
+        "_hc_ping",
+        "state_get",
+        "state_set",
+        "check_main"
+      ],
+      "totalLines": 99,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/iptv-auth.py": {
+      "filePath": "monitoring/service-checks/checks/iptv-auth.py",
+      "contentHash": "e2807742b8c20eb8200533b639cf409719fe548910966125e1911033fd1b750d",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 16
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "_lib",
+          "specifiers": [
+            "check_main",
+            "notify",
+            "read_secret",
+            "state_get",
+            "state_set"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 33,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/iptv-canary-epg.py": {
+      "filePath": "monitoring/service-checks/checks/iptv-canary-epg.py",
+      "contentHash": "debc7d4dae934e136f90a91f8f2f0ab287da790a617c4b7489a97ea53883d44a",
+      "functions": [
+        {
+          "name": "_parse_canaries",
+          "params": [
+            "stream",
+            "canary_set"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 62
+        },
+        {
+          "name": "_evaluate",
+          "params": [
+            "ch_id",
+            "s",
+            "now"
+          ],
+          "returnType": "tuple[bool, str | None]",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 42
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "xml.etree.ElementTree",
+          "specifiers": [
+            "ET"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "_lib",
+          "specifiers": [
+            "check_main",
+            "notify",
+            "read_secret",
+            "state_get",
+            "state_set"
+          ]
+        }
+      ],
+      "exports": [
+        "_parse_canaries",
+        "_evaluate",
+        "main"
+      ],
+      "totalLines": 204,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/iptv-channel-count.py": {
+      "filePath": "monitoring/service-checks/checks/iptv-channel-count.py",
+      "contentHash": "8376e19c139a0a13f82592bc3b38ecd4fc7c342c9ee00fdf02e43114e8b799bd",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 22
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "_lib",
+          "specifiers": [
+            "check_main",
+            "notify",
+            "read_secret",
+            "state_get",
+            "state_set"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/iptv-epg-freshness.py": {
+      "filePath": "monitoring/service-checks/checks/iptv-epg-freshness.py",
+      "contentHash": "5b86b4bb55b4afa0110baae89ad55e1cb965e82a05d0a769273f685c32616ca4",
+      "functions": [
+        {
+          "name": "latest_stop_ts",
+          "params": [
+            "stream"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 32
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "xml.etree.ElementTree",
+          "specifiers": [
+            "ET"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "_lib",
+          "specifiers": [
+            "check_main",
+            "notify",
+            "read_secret",
+            "state_get",
+            "state_set"
+          ]
+        }
+      ],
+      "exports": [
+        "latest_stop_ts",
+        "main"
+      ],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/checks/iptv-renewal-warn.py": {
+      "filePath": "monitoring/service-checks/checks/iptv-renewal-warn.py",
+      "contentHash": "d64104b29bc05a343e8bd660e360c9f919a451f3314e3f0b6f0688170acbca5f",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "exported": true,
+          "lineCount": 35
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urllib.request"
+          ]
+        },
+        {
+          "source": "_lib",
+          "specifiers": [
+            "check_main",
+            "notify",
+            "read_secret",
+            "state_get",
+            "state_set"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/crontab": {
+      "filePath": "monitoring/service-checks/crontab",
+      "contentHash": "c11394acecc30fc8f9398aceb1e38b4665f595636ce6753364a24f8f28317f63",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 16,
+      "hasStructuralAnalysis": false
+    },
+    "monitoring/service-checks/Dockerfile": {
+      "filePath": "monitoring/service-checks/Dockerfile",
+      "contentHash": "8d62a99c32dcc4238a36363dbc469f4fe9272d1ffa768c1c77a500f1828eb7e4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 20,
+      "hasStructuralAnalysis": true
+    },
+    "monitoring/service-checks/entrypoint.sh": {
+      "filePath": "monitoring/service-checks/entrypoint.sh",
+      "contentHash": "f7510e934b600df11892f33f27f86bc725c9f4193f45b51fc24b428f90118e67",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "mqtt/central/config/acl": {
+      "filePath": "mqtt/central/config/acl",
+      "contentHash": "6778bcb65233127d145d4efe9d1dc564ff3639c2c4eb7332e435cf9838837f03",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": false
+    },
+    "mqtt/central/config/mosquitto.conf": {
+      "filePath": "mqtt/central/config/mosquitto.conf",
+      "contentHash": "fc0f0909b62eb428ff2a96b29f89353582840a57ba4a9aaa34e30e14f92c128a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 9,
+      "hasStructuralAnalysis": false
+    },
+    "mqtt/docker-compose.yml": {
+      "filePath": "mqtt/docker-compose.yml",
+      "contentHash": "120b3358ff6b038187a57c596f41e711c9ed1664e281f26a818b169fc1026772",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "mqtt/entrypoint/central-entrypoint.sh": {
+      "filePath": "mqtt/entrypoint/central-entrypoint.sh",
+      "contentHash": "fd5323dfc2fec372045b1eb9ffaca6e4e4ceb7f503811b5b08e07302d955c15d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "mqtt/entrypoint/site-entrypoint.sh": {
+      "filePath": "mqtt/entrypoint/site-entrypoint.sh",
+      "contentHash": "b1720f3b0e4ac004f6d78185d66453794a4f865be4e6cb5ccd04e83d84d79f49",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "mqtt/README.md": {
+      "filePath": "mqtt/README.md",
+      "contentHash": "27740a927d95d80cc4fb2b3488f48991ef683887fd80ed4c846df8b8e89e638e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 41,
+      "hasStructuralAnalysis": true
+    },
+    "mqtt/site/config/acl": {
+      "filePath": "mqtt/site/config/acl",
+      "contentHash": "f3a2fc1a50f8a33e4a0697e39c4ede8496247700734a09c89e3f0a3d7e3d2eb4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 8,
+      "hasStructuralAnalysis": false
+    },
+    "mqtt/site/config/mosquitto.conf.tmpl": {
+      "filePath": "mqtt/site/config/mosquitto.conf.tmpl",
+      "contentHash": "c07050c555de96dba4cab6e0e59babfa347b711122d33c880e750dd2382d6842",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": false
+    },
+    "pangolin/config/config.yml.template": {
+      "filePath": "pangolin/config/config.yml.template",
+      "contentHash": "5e467e089c43e155d86f84babfcfab10292e8ddb29d4cb083b8f0d23056ac215",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 40,
+      "hasStructuralAnalysis": false
+    },
+    "pangolin/config/render-config.sh": {
+      "filePath": "pangolin/config/render-config.sh",
+      "contentHash": "c6f263b299720ded7b9ebc5f281c4ba35e8738ac45e8247a5a471532b9cfa365",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "pangolin/config/traefik/dynamic_config.yml": {
+      "filePath": "pangolin/config/traefik/dynamic_config.yml",
+      "contentHash": "dfb450b863ae50212475e43bdcbafb23aeb95657bd7b6b6e3f582e90a5f20e36",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "pangolin/config/traefik/traefik_config.yml": {
+      "filePath": "pangolin/config/traefik/traefik_config.yml",
+      "contentHash": "fe677fd4068f5d97326c0574ce56f3abbc9ef89f897df967ce6117f06aa18809",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 60,
+      "hasStructuralAnalysis": true
+    },
+    "pangolin/docker-compose.yml": {
+      "filePath": "pangolin/docker-compose.yml",
+      "contentHash": "d9abb2849b5bc49802114c2d12cebc8925238ec1aeb47cfd1fdb1eb79223573f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "pangolin/README.md": {
+      "filePath": "pangolin/README.md",
+      "contentHash": "18de0da49316a958c9294de6e7bce314a87478dcd34ce1b4fd48cde21f11b6c7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 38,
+      "hasStructuralAnalysis": true
+    },
+    "penpot/docker-compose.yml": {
+      "filePath": "penpot/docker-compose.yml",
+      "contentHash": "d42c4bbc40f922caf526d78e1b287d09ac76168a76f69f838f178d383f8b8bce",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 151,
+      "hasStructuralAnalysis": true
+    },
+    "penpot/README.md": {
+      "filePath": "penpot/README.md",
+      "contentHash": "64e41d9f2eb18270f4d96d97bdcd4064b4205894dd54cf8a4c5d218f8aa7fe67",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "pyproject.toml": {
+      "filePath": "pyproject.toml",
+      "contentHash": "544d0ffe2a6de50ee6440ce9e0f4affa0ac0a7a2b564d7d9e86b9347fc1d4045",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "2c869288e80e652cc17f235f9a16b973853a51e58621d2a188015bff7169ca30",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 103,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

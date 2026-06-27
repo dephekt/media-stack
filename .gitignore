@@ -34,3 +34,14 @@ pangolin/config/openapi.yaml
 .playwright-cli/
 .playwright-mcp/
 
+# understand-anything: the global ~/.gitignore blanket-ignores
+# **/.understand-anything/**. Re-include only the durable knowledge graph
+# state here; scratch dirs (.trash-*) stay ignored.
+!.understand-anything/knowledge-graph.json
+!.understand-anything/meta.json
+!.understand-anything/config.json
+!.understand-anything/fingerprints.json
+!.understand-anything/.understandignore
+!.understand-anything/intermediate/
+!.understand-anything/intermediate/scan-result.json
+
