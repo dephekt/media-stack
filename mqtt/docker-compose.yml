@@ -13,7 +13,6 @@ services:
     secrets:
       - MQTT_EDGE_PASSWORD
       - MQTT_GROW_APP_SITE_PASSWORD
-      - MQTT_BRIDGE_PASSWORD
     networks:
       - mqtt
     healthcheck:
@@ -23,29 +22,8 @@ services:
       retries: 3
       start_period: 10s
 
-  mosquitto-central:
-    image: eclipse-mosquitto:2.0.20
-    container_name: mosquitto-central
-    restart: unless-stopped
-    entrypoint: ["/mqtt-entrypoint/central-entrypoint.sh"]
-    volumes:
-      - ./central/config:/mosquitto/config:ro
-      - ./entrypoint:/mqtt-entrypoint:ro
-      - mosquitto-central-data:/mosquitto/data
-    secrets:
-      - MQTT_BRIDGE_PASSWORD
-    networks:
-      - mqtt
-    healthcheck:
-      test: ["CMD-SHELL", "mosquitto_sub -h localhost -E -t grow/daniel-home/_healthcheck -u bridge-daniel-home -P \"$$(cat /run/secrets/MQTT_BRIDGE_PASSWORD)\" >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 6s
-      retries: 3
-      start_period: 10s
-
 volumes:
   mosquitto-site-data:
-  mosquitto-central-data:
 
 networks:
   mqtt:
@@ -56,5 +34,3 @@ secrets:
     file: ./secrets/MQTT_EDGE_PASSWORD
   MQTT_GROW_APP_SITE_PASSWORD:
     file: ./secrets/MQTT_GROW_APP_SITE_PASSWORD
-  MQTT_BRIDGE_PASSWORD:
-    file: ./secrets/MQTT_BRIDGE_PASSWORD

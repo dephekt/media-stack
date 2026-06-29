@@ -33,8 +33,8 @@ SERVICES_iptv   := iptvboss
 SERVICES_channels  := channels-dvr
 SERVICES_monitoring := apprise-api events-watcher service-checks agent-kb-redeploy
 SERVICES_pangolin := pangolin gerbil traefik
-SERVICES_mqtt    := mosquitto-site mosquitto-central
-SERVICES_grow    := grow-app-site
+SERVICES_mqtt    := mosquitto-site
+SERVICES_grow    := grow-app-site grow-influxdb grow-history-recorder
 SERVICES_matrix  := tuwunel element-web
 SERVICES_penpot  := penpot-frontend penpot-backend penpot-mcp penpot-exporter penpot-postgres penpot-valkey
 SERVICES_kanban  := kanban-router kanboard kanboard-admin-init kanboard-oauth-init kanban-ref
@@ -57,7 +57,8 @@ REQUIRED_SECRETS := \
 	pangolin/config/config.yml \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
-	mqtt/secrets/MQTT_BRIDGE_PASSWORD \
+	grow/secrets/INFLUXDB_ADMIN_PASSWORD \
+	grow/secrets/INFLUXDB_ADMIN_TOKEN \
 	grow/secrets/FIRMWARE_OCI_TOKEN \
 	grow/secrets/FIRMWARE_UPDATE_TOKEN \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
@@ -80,7 +81,6 @@ MEDIA_SYNC_REQUIRED := \
 	monitoring/service-checks \
 	mqtt/secrets \
 	mqtt/site \
-	mqtt/central \
 	mqtt/entrypoint \
 	mqtt/docker-compose.yml \
 	grow/secrets \
@@ -231,7 +231,8 @@ inject-agent-secrets:
 	}; \
 	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
-	read_agent_secret 'op://Agents/MQTT/bridge password' mqtt/secrets/MQTT_BRIDGE_PASSWORD; \
+	read_agent_secret 'op://Agents/InfluxDB/admin password' grow/secrets/INFLUXDB_ADMIN_PASSWORD; \
+	read_agent_secret 'op://Agents/InfluxDB/admin token' grow/secrets/INFLUXDB_ADMIN_TOKEN; \
 	read_agent_secret 'op://Agents/GitHub/ghcr-read-packages' monitoring/secrets/GHCR_READ_TOKEN.env; \
 	read_agent_secret 'op://Agents/GitHub/ghcr-read-packages' grow/secrets/FIRMWARE_OCI_TOKEN; \
 	read_agent_secret 'op://Agents/Grow App/firmware-update-token' grow/secrets/FIRMWARE_UPDATE_TOKEN; \
