@@ -13,6 +13,7 @@ services:
     secrets:
       - MQTT_EDGE_PASSWORD
       - MQTT_GROW_APP_SITE_PASSWORD
+      - MQTT_RECORDER_PASSWORD
     networks:
       - mqtt
     healthcheck:
@@ -34,3 +35,5 @@ secrets:
     file: ./secrets/MQTT_EDGE_PASSWORD
   MQTT_GROW_APP_SITE_PASSWORD:
     file: ./secrets/MQTT_GROW_APP_SITE_PASSWORD
+  MQTT_RECORDER_PASSWORD:
+    file: ./secrets/MQTT_RECORDER_PASSWORD

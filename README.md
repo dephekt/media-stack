@@ -87,8 +87,8 @@ Every top-level directory is an **independent Docker Compose project**, stitched
 | Stack | What it is |
 |---|---|
 | [`matrix/`](matrix/README.md) | Tuwunel homeserver (`matrix.${DOMAIN}`) + Element Web (`chat.${DOMAIN}`) for family/friends chat |
-| [`mqtt/`](mqtt/README.md) | Mosquitto **site** broker + **central** aggregator, joined by a durable bridge — the MQTT spine for the grow-control system |
-| [`grow/`](grow/README.md) | LAN-local grow-app HMI on port `3080`, riding the shared MQTT network |
+| [`mqtt/`](mqtt/README.md) | Single per-site Mosquitto broker — the local MQTT bus for the grow-control system (no central aggregator; remote access is at the app layer via Pangolin) |
+| [`grow/`](grow/README.md) | LAN-local grow-app HMI on port `3080`, per-site InfluxDB 2.7 time-series store, and a history-recorder sidecar that writes MQTT readings to InfluxDB |
 
 **Collaboration & knowledge**
 

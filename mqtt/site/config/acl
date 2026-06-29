@@ -5,3 +5,8 @@ topic readwrite grow/daniel-home/#
 # Site-mode grow-app — LAN HMI/API for Daniel's local site only.
 user grow-app-site-daniel-home
 topic readwrite grow/daniel-home/#
+
+# History recorder — a passive sink. Read-only: it subscribes to the subtree and
+# never publishes, so it cannot drive hardware even if compromised.
+user recorder-daniel-home
+topic read grow/daniel-home/#

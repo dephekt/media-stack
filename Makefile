@@ -57,6 +57,7 @@ REQUIRED_SECRETS := \
 	pangolin/config/config.yml \
 	mqtt/secrets/MQTT_EDGE_PASSWORD \
 	mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD \
+	mqtt/secrets/MQTT_RECORDER_PASSWORD \
 	grow/secrets/INFLUXDB_ADMIN_PASSWORD \
 	grow/secrets/INFLUXDB_ADMIN_TOKEN \
 	grow/secrets/FIRMWARE_OCI_TOKEN \
@@ -231,6 +232,7 @@ inject-agent-secrets:
 	}; \
 	read_agent_secret 'op://Agents/MQTT/edge password' mqtt/secrets/MQTT_EDGE_PASSWORD; \
 	read_agent_secret 'op://Agents/MQTT/grow app site password' mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD; \
+	read_agent_secret 'op://Agents/MQTT/recorder password' mqtt/secrets/MQTT_RECORDER_PASSWORD; \
 	read_agent_secret 'op://Agents/InfluxDB/admin password' grow/secrets/INFLUXDB_ADMIN_PASSWORD; \
 	read_agent_secret 'op://Agents/InfluxDB/admin token' grow/secrets/INFLUXDB_ADMIN_TOKEN; \
 	read_agent_secret 'op://Agents/GitHub/ghcr-read-packages' monitoring/secrets/GHCR_READ_TOKEN.env; \

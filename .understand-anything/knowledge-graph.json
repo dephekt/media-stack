@@ -1808,12 +1808,13 @@
       "type": "service",
       "name": "docker-compose.yml",
       "filePath": "grow/docker-compose.yml",
-      "summary": "Compose project for the grow-app HMI site, wiring it to the shared MQTT broker network and injecting MQTT and GHCR-OCI firmware-distribution secrets via Docker secrets.",
+      "summary": "Compose project for the grow stack: the grow-app HMI, the per-site InfluxDB 2.7 time-series store, and the grow-history-recorder sidecar, all wired to the shared grow-mqtt network with Docker secrets.",
       "tags": [
         "orchestration",
         "infrastructure",
         "iot",
-        "hmi"
+        "hmi",
+        "timeseries"
       ],
       "complexity": "simple"
     },
@@ -1822,12 +1823,13 @@
       "type": "service",
       "name": "grow-app-site",
       "filePath": "grow/docker-compose.yml",
-      "summary": "LAN-local grow-app site HMI container connecting to the mosquitto-site MQTT broker and pulling firmware packages from GHCR as OCI artifacts, with a Node fetch-based health check.",
+      "summary": "LAN-local grow-app site HMI container connecting to mosquitto-site for MQTT and grow-influxdb for history queries, pulling firmware packages from GHCR as OCI artifacts, with a Node fetch-based health check.",
       "tags": [
         "containerization",
         "iot",
         "hmi",
-        "mqtt"
+        "mqtt",
+        "timeseries"
       ],
       "complexity": "simple"
     },
@@ -2589,53 +2591,25 @@
       "complexity": "simple"
     },
     {
-      "id": "config:mqtt/central/config/acl",
-      "type": "config",
-      "name": "acl",
-      "filePath": "mqtt/central/config/acl",
-      "summary": "Mosquitto ACL for the central aggregator broker, scoping the per-site bridge user (bridge-daniel-home) to its own grow/daniel-home/# subtree as defense-in-depth against cross-site leakage.",
-      "tags": [
-        "configuration",
-        "mqtt",
-        "access-control",
-        "security"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "config:mqtt/central/config/mosquitto.conf",
-      "type": "config",
-      "name": "mosquitto.conf",
-      "filePath": "mqtt/central/config/mosquitto.conf",
-      "summary": "Mosquitto config for the central aggregator broker: anonymous access disabled, password and ACL files under /run/mosquitto, and persistence enabled. Receives opted-in sites' subtrees via per-site bridges.",
-      "tags": [
-        "configuration",
-        "mqtt",
-        "broker",
-        "infrastructure"
-      ],
-      "complexity": "simple"
-    },
-    {
       "id": "service:mqtt/docker-compose.yml",
       "type": "service",
       "name": "docker-compose.yml",
       "filePath": "mqtt/docker-compose.yml",
-      "summary": "Compose project defining two Mosquitto 2.x brokers (site and central) on a shared grow-mqtt network with a durable site-to-central bridge, file-based secrets, and per-broker healthchecks.",
+      "summary": "Compose project defining a single site Mosquitto 2.x broker on the grow-mqtt network, with file-based secrets for edge devices, the grow-app, and the history recorder, plus a broker healthcheck.",
       "tags": [
         "infrastructure",
         "orchestration",
         "mqtt",
         "containerization"
       ],
-      "complexity": "moderate"
+      "complexity": "simple"
     },
     {
       "id": "service:mqtt/docker-compose.yml:mosquitto-site",
       "type": "service",
       "name": "mosquitto-site",
       "filePath": "mqtt/docker-compose.yml",
-      "summary": "Site broker: Daniel's local grow/daniel-home/# bus, exposed on host port 1883 for LAN ESPHome devices and bridging up to the central aggregator. Runs via site-entrypoint.sh.",
+      "summary": "Site broker: Daniel's local grow/daniel-home/# bus, exposed on host port 1883 for LAN ESPHome devices and the local grow-app/history-recorder. No central bridge; all traffic stays on the LAN. Runs via site-entrypoint.sh.",
       "tags": [
         "mqtt",
         "broker",
@@ -2645,45 +2619,16 @@
       "complexity": "simple"
     },
     {
-      "id": "service:mqtt/docker-compose.yml:mosquitto-central",
-      "type": "service",
-      "name": "mosquitto-central",
-      "filePath": "mqtt/docker-compose.yml",
-      "summary": "Central aggregator broker with no host port, reachable only over the grow-mqtt docker network and receiving each site's subtree via its per-site bridge credential. Runs via central-entrypoint.sh.",
-      "tags": [
-        "mqtt",
-        "broker",
-        "service",
-        "aggregator"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mqtt/entrypoint/central-entrypoint.sh",
+      "id": "file:mqtt/entrypoint/site-entrypoint.sh",
       "type": "file",
-      "name": "central-entrypoint.sh",
-      "filePath": "mqtt/entrypoint/central-entrypoint.sh",
-      "summary": "Entrypoint for the central broker: hashes the bridge user password into /run/mosquitto/passwd, copies the ACL, fixes ownership for the mosquitto uid, and execs mosquitto with the central config.",
+      "name": "site-entrypoint.sh",
+      "filePath": "mqtt/entrypoint/site-entrypoint.sh",
+      "summary": "Entrypoint for the site broker: hashes edge, grow-app, and recorder passwords into /run/mosquitto/passwd, copies the ACL and static config, fixes ownership for the mosquitto uid, and execs mosquitto.",
       "tags": [
         "script",
         "entry-point",
         "mqtt",
         "secret-injection"
-      ],
-      "complexity": "simple"
-    },
-    {
-      "id": "file:mqtt/entrypoint/site-entrypoint.sh",
-      "type": "file",
-      "name": "site-entrypoint.sh",
-      "filePath": "mqtt/entrypoint/site-entrypoint.sh",
-      "summary": "Entrypoint for the site broker: hashes the edge and grow-app passwords, renders the runtime config from the template by appending the bridge remote_password from the secret, fixes ownership, and execs mosquitto.",
-      "tags": [
-        "script",
-        "entry-point",
-        "mqtt",
-        "secret-injection",
-        "render"
       ],
       "complexity": "simple"
     },
@@ -2706,7 +2651,7 @@
       "type": "config",
       "name": "acl",
       "filePath": "mqtt/site/config/acl",
-      "summary": "Mosquitto ACL for the site broker scoping the edge ESPHome devices (edge-daniel-home) and the local grow-app server (grow-app-site-daniel-home) to the grow/daniel-home/# subtree.",
+      "summary": "Mosquitto ACL for the site broker scoping the edge ESPHome devices (edge-daniel-home), the local grow-app (grow-app-site-daniel-home), and the read-only history recorder (recorder-daniel-home) to the grow/daniel-home/# subtree.",
       "tags": [
         "configuration",
         "mqtt",
@@ -2720,13 +2665,12 @@
       "type": "config",
       "name": "mosquitto.conf.tmpl",
       "filePath": "mqtt/site/config/mosquitto.conf.tmpl",
-      "summary": "Site broker config template with the durable bridge connection up to mosquitto-central; the bridge remote_password is appended at runtime by site-entrypoint.sh from the bridge secret.",
+      "summary": "Site broker config: anonymous access disabled, password and ACL files under /run/mosquitto, and persistence enabled. Autonomous island \u2014 no central bridge; rendered directly by site-entrypoint.sh.",
       "tags": [
         "configuration",
         "mqtt",
         "broker",
-        "template",
-        "bridge"
+        "template"
       ],
       "complexity": "simple"
     },
@@ -2972,6 +2916,35 @@
         "design-tool",
         "deployment",
         "overview"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:grow/docker-compose.yml:grow-influxdb",
+      "type": "service",
+      "name": "grow-influxdb",
+      "filePath": "grow/docker-compose.yml",
+      "summary": "Per-site InfluxDB 2.7 time-series store that holds grow sensor readings for the daniel-home site. Initialised with org 'grow' and bucket 'daniel-home'; admin password and token injected via Docker secrets. Admin UI/CLI bound to loopback only.",
+      "tags": [
+        "timeseries",
+        "database",
+        "iot",
+        "service"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "service:grow/docker-compose.yml:grow-history-recorder",
+      "type": "service",
+      "name": "grow-history-recorder",
+      "filePath": "grow/docker-compose.yml",
+      "summary": "Sidecar recorder that subscribes to the site MQTT bus as the read-only recorder-daniel-home user and writes numeric/binary grow readings into grow-influxdb. Shares the grow-app image, started with node build-recorder/recorder.js, waits for grow-influxdb service_healthy before starting.",
+      "tags": [
+        "iot",
+        "recorder",
+        "mqtt",
+        "timeseries",
+        "sidecar"
       ],
       "complexity": "simple"
     }
@@ -5022,13 +4995,6 @@
       "weight": 1.0
     },
     {
-      "source": "service:mqtt/docker-compose.yml",
-      "target": "service:mqtt/docker-compose.yml:mosquitto-central",
-      "type": "contains",
-      "direction": "forward",
-      "weight": 1.0
-    },
-    {
       "source": "service:pangolin/docker-compose.yml",
       "target": "service:pangolin/docker-compose.yml:pangolin",
       "type": "contains",
@@ -5169,13 +5135,6 @@
       "weight": 0.6
     },
     {
-      "source": "service:mqtt/docker-compose.yml:mosquitto-site",
-      "target": "service:mqtt/docker-compose.yml:mosquitto-central",
-      "type": "related",
-      "direction": "forward",
-      "weight": 0.5
-    },
-    {
       "source": "config:mqtt/site/config/mosquitto.conf.tmpl",
       "target": "service:mqtt/docker-compose.yml:mosquitto-site",
       "type": "configures",
@@ -5185,20 +5144,6 @@
     {
       "source": "config:mqtt/site/config/acl",
       "target": "service:mqtt/docker-compose.yml:mosquitto-site",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:mqtt/central/config/mosquitto.conf",
-      "target": "service:mqtt/docker-compose.yml:mosquitto-central",
-      "type": "configures",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "config:mqtt/central/config/acl",
-      "target": "service:mqtt/docker-compose.yml:mosquitto-central",
       "type": "configures",
       "direction": "forward",
       "weight": 0.6
@@ -5281,13 +5226,6 @@
       "weight": 0.6
     },
     {
-      "source": "service:mqtt/docker-compose.yml:mosquitto-central",
-      "target": "file:mqtt/entrypoint/central-entrypoint.sh",
-      "type": "depends_on",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
       "source": "file:mqtt/entrypoint/site-entrypoint.sh",
       "target": "config:mqtt/site/config/mosquitto.conf.tmpl",
       "type": "depends_on",
@@ -5297,20 +5235,6 @@
     {
       "source": "file:mqtt/entrypoint/site-entrypoint.sh",
       "target": "config:mqtt/site/config/acl",
-      "type": "depends_on",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "file:mqtt/entrypoint/central-entrypoint.sh",
-      "target": "config:mqtt/central/config/mosquitto.conf",
-      "type": "depends_on",
-      "direction": "forward",
-      "weight": 0.6
-    },
-    {
-      "source": "file:mqtt/entrypoint/central-entrypoint.sh",
-      "target": "config:mqtt/central/config/acl",
       "type": "depends_on",
       "direction": "forward",
       "weight": 0.6
@@ -5335,6 +5259,31 @@
       "type": "depends_on",
       "direction": "forward",
       "weight": 0.6
+    },
+    {
+      "source": "service:grow/docker-compose.yml",
+      "target": "service:grow/docker-compose.yml:grow-influxdb",
+      "type": "contains"
+    },
+    {
+      "source": "service:grow/docker-compose.yml",
+      "target": "service:grow/docker-compose.yml:grow-history-recorder",
+      "type": "contains"
+    },
+    {
+      "source": "service:grow/docker-compose.yml:grow-history-recorder",
+      "target": "service:grow/docker-compose.yml:grow-influxdb",
+      "type": "depends_on"
+    },
+    {
+      "source": "service:grow/docker-compose.yml:grow-app-site",
+      "target": "service:grow/docker-compose.yml:grow-influxdb",
+      "type": "related"
+    },
+    {
+      "source": "service:grow/docker-compose.yml:grow-history-recorder",
+      "target": "service:mqtt/docker-compose.yml:mosquitto-site",
+      "type": "related"
     }
   ],
   "layers": [
@@ -5397,7 +5346,7 @@
     {
       "id": "layer:communication-messaging",
       "name": "Communication & Messaging",
-      "description": "Real-time human and machine messaging: the Matrix/Element chat homeserver, the two-broker Mosquitto MQTT grow-control spine, and the LAN-local grow-app HMI that rides it.",
+      "description": "Real-time human and machine messaging: the Matrix/Element chat homeserver, the Mosquitto MQTT site broker, the LAN-local grow-app HMI, the per-site InfluxDB time-series store, and the grow-history-recorder sidecar.",
       "nodeIds": [
         "service:matrix/docker-compose.yml",
         "service:matrix/docker-compose.yml:tuwunel",
@@ -5407,15 +5356,13 @@
         "service:grow/docker-compose.yml:grow-app-site",
         "config:matrix/config/element-web.json",
         "config:matrix/config/tuwunel.toml",
-        "config:mqtt/central/config/acl",
-        "config:mqtt/central/config/mosquitto.conf",
         "service:mqtt/docker-compose.yml",
         "service:mqtt/docker-compose.yml:mosquitto-site",
-        "service:mqtt/docker-compose.yml:mosquitto-central",
-        "file:mqtt/entrypoint/central-entrypoint.sh",
         "file:mqtt/entrypoint/site-entrypoint.sh",
         "config:mqtt/site/config/acl",
-        "config:mqtt/site/config/mosquitto.conf.tmpl"
+        "config:mqtt/site/config/mosquitto.conf.tmpl",
+        "service:grow/docker-compose.yml:grow-influxdb",
+        "service:grow/docker-compose.yml:grow-history-recorder"
       ]
     },
     {
@@ -5566,7 +5513,7 @@
         "service:core/docker-compose.yml:newt",
         "file:core/newt-entrypoint.sh"
       ],
-      "languageLesson": "Traefik splits configuration into static (entrypoints, providers, TLS resolvers — loaded once at boot) and dynamic (routers, services, middlewares — hot-reloaded from the file provider). Forward-auth middleware lets the proxy delegate the authn decision to an external service before any request reaches the backend."
+      "languageLesson": "Traefik splits configuration into static (entrypoints, providers, TLS resolvers \u2014 loaded once at boot) and dynamic (routers, services, middlewares \u2014 hot-reloaded from the file provider). Forward-auth middleware lets the proxy delegate the authn decision to an external service before any request reaches the backend."
     },
     {
       "order": 4,
@@ -5627,7 +5574,7 @@
         "file:monitoring/service-checks/checks/_lib.py",
         "file:monitoring/service-checks/checks/iptv-canary-epg.py"
       ],
-      "languageLesson": "A Python decorator (`@check_main`) wraps each probe's entry function with shared cross-cutting behavior — running the check, persisting state to disk, deduplicating repeat alerts, and pinging a dead-man monitor — so each individual canary file stays a few lines of probe-specific logic. This is the decorator pattern used to factor out boilerplate."
+      "languageLesson": "A Python decorator (`@check_main`) wraps each probe's entry function with shared cross-cutting behavior \u2014 running the check, persisting state to disk, deduplicating repeat alerts, and pinging a dead-man monitor \u2014 so each individual canary file stays a few lines of probe-specific logic. This is the decorator pattern used to factor out boilerplate."
     },
     {
       "order": 9,
@@ -5642,7 +5589,7 @@
     {
       "order": 10,
       "title": "Collaboration & Productivity",
-      "description": "The collaboration stacks close the loop back to Keycloak from Step 4. The Kanboard kanban project bundles an nginx router, the app with OAuth2, and one-shot init jobs; its access is provisioned by configure-kanboard-client.sh, an idempotent Keycloak admin-API bootstrap that creates the OIDC client, client roles, member groups, and a custom gate flow. The Penpot design workspace follows the same model — frontend, backend, exporter, MCP, Postgres, and Valkey, all wired for Keycloak OIDC and exposed via Pangolin labels. This is the SSO-everywhere principle applied to productivity tools.",
+      "description": "The collaboration stacks close the loop back to Keycloak from Step 4. The Kanboard kanban project bundles an nginx router, the app with OAuth2, and one-shot init jobs; its access is provisioned by configure-kanboard-client.sh, an idempotent Keycloak admin-API bootstrap that creates the OIDC client, client roles, member groups, and a custom gate flow. The Penpot design workspace follows the same model \u2014 frontend, backend, exporter, MCP, Postgres, and Valkey, all wired for Keycloak OIDC and exposed via Pangolin labels. This is the SSO-everywhere principle applied to productivity tools.",
       "nodeIds": [
         "service:kanban/docker-compose.yml",
         "file:kanban/keycloak/configure-kanboard-client.sh",
@@ -5652,7 +5599,7 @@
     {
       "order": 11,
       "title": "Wrap-Up: The Operator's Map",
-      "description": "AGENTS.md is the capstone: a single quick-reference describing every compose stack, the shared networks, the 1Password secrets workflow, and the Makefile orchestration model from Step 2, with Pangolin/Newt operational tips. Having walked the edge, identity, media, application code, monitoring, messaging, and collaboration layers, this document ties them together and is where a new contributor or agent confirms the conventions before making a change. From here you understand not just what each stack does, but the repeating pattern — label-driven exposure, Keycloak SSO, Make-driven orchestration — that makes the whole platform coherent.",
+      "description": "AGENTS.md is the capstone: a single quick-reference describing every compose stack, the shared networks, the 1Password secrets workflow, and the Makefile orchestration model from Step 2, with Pangolin/Newt operational tips. Having walked the edge, identity, media, application code, monitoring, messaging, and collaboration layers, this document ties them together and is where a new contributor or agent confirms the conventions before making a change. From here you understand not just what each stack does, but the repeating pattern \u2014 label-driven exposure, Keycloak SSO, Make-driven orchestration \u2014 that makes the whole platform coherent.",
       "nodeIds": [
         "document:AGENTS.md"
       ]

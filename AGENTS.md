@@ -15,8 +15,8 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Immich** (`immich/`): Photo management at `https://photos.${DOMAIN}`.
 - **IPTVBoss** (`iptv/`): IPTV management and XC server.
 - **Channels DVR** (`channels/`): Fancybits Channels DVR (host network; DVR/config volumes on the Docker host).
-- **MQTT** (`mqtt/`): Daniel's grow site broker plus central aggregator. The `mqtt` network is explicitly named `grow-mqtt` so the separate `grow/` stack can attach.
-- **Grow App** (`grow/`): LAN-local grow-app site HMI for Daniel's grow. No Pangolin or Keycloak in Phase 1; exposed directly on host port `3080`.
+- **MQTT** (`mqtt/`): Daniel's grow site broker. The `mqtt` network is explicitly named `grow-mqtt` so the separate `grow/` stack can attach.
+- **Grow App** (`grow/`): LAN-local grow-app site HMI for Daniel's grow, plus a per-site InfluxDB 2.7 time-series store and a history-recorder sidecar that subscribes to MQTT and writes readings to InfluxDB. No Pangolin or Keycloak in Phase 1; HMI exposed directly on host port `3080`.
 - **Penpot** (`penpot/`): Self-hosted design workspace at `https://design.ai.${DOMAIN}` for grow-app HMI redesign loops. Pangolin routes the app, but Penpot uses Keycloak OIDC directly with Pangolin SSO disabled.
 - **Kanban** (`kanban/`): Shared Kanboard tracker at `https://kanban.ai.dephekt.net` with direct LAN fallback on `http://containers.home.arpa:8097`.
 - **CCI Black Book MCP** (`cci/`): MCP-only CCI Black Book retrieval service at `https://cci.ai.${DOMAIN}/mcp`. Pangolin SSO is disabled; Codex/Claude Code send bearer tokens directly.
@@ -49,8 +49,8 @@ Three local containers + two SaaS witnesses. Local Apprise paths land in Discord
 ├─ channels/                     # channels-dvr (host network)
 ├─ monitoring/                   # apprise-api, events-watcher, service-checks (+ SaaS: UptimeRobot, Healthchecks.io)
 ├─ pangolin/                     # pangolin server + gerbil + traefik; deploys to pangolin-edge context
-├─ mqtt/                         # grow-control site broker + central aggregator
-├─ grow/                         # grow-app site-mode HMI
+├─ mqtt/                         # grow-control single per-site broker
+├─ grow/                         # grow-app site-mode HMI + InfluxDB + history-recorder
 ├─ penpot/                       # Penpot design workspace
 ├─ kanban/                       # Kanboard + /i/<TASK_REF> redirector
 ├─ cci/                          # CCI Black Book MCP retrieval service

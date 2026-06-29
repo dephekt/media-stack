@@ -1,5 +1,19 @@
 name: grow
 
+# Shared env, merged into both grow services so a topic-prefix / org / bucket
+# change can't silently drift between the app and the recorder.
+x-grow-mqtt: &grow-mqtt
+  GROW_SITE: daniel-home
+  MQTT_URL: mqtt://mosquitto-site:1883
+  MQTT_TOPIC_PREFIX: grow/daniel-home
+  MQTT_DISCOVERY_PREFIX: grow/daniel-home/_discovery
+
+x-grow-influx: &grow-influx
+  INFLUX_URL: http://grow-influxdb:8086
+  INFLUX_ORG: grow
+  INFLUX_BUCKET: daniel-home
+  INFLUX_TOKEN_FILE: /run/secrets/INFLUXDB_ADMIN_TOKEN
+
 services:
   grow-app-site:
     image: ghcr.io/dephekt/grow-app:edge-node24-bookworm-slim
@@ -7,24 +21,22 @@ services:
     restart: unless-stopped
     ports:
       - "3080:3000"          # LAN-local site HMI (not Pangolin / central mode)
+    # No depends_on: grow-influxdb on purpose — the HMI must stay up even when
+    # history is down. The InfluxDB client connects lazily on /api/history and
+    # degrades to "history disabled" rather than blocking or crash-looping.
     environment:
-      - GROW_SITE=daniel-home
-      - MQTT_URL=mqtt://mosquitto-site:1883
-      - MQTT_USERNAME=grow-app-site-daniel-home
-      - MQTT_PASSWORD_FILE=/run/secrets/MQTT_GROW_APP_SITE_PASSWORD
-      - MQTT_TOPIC_PREFIX=grow/daniel-home
-      - MQTT_DISCOVERY_PREFIX=grow/daniel-home/_discovery
-      - INFLUX_URL=http://grow-influxdb:8086
-      - INFLUX_ORG=grow
-      - INFLUX_BUCKET=daniel-home
-      - INFLUX_TOKEN_FILE=/run/secrets/INFLUXDB_ADMIN_TOKEN
-      - FIRMWARE_PACKAGE_PROVIDER=ghcr-oci
-      - FIRMWARE_OCI_REGISTRY=ghcr.io
-      - FIRMWARE_OCI_OWNER=dephekt
-      - FIRMWARE_OCI_PACKAGE_PREFIX=grow-fleet
-      - FIRMWARE_OCI_AUTH_USER=dephekt
-      - FIRMWARE_OCI_TOKEN_FILE=/run/secrets/FIRMWARE_OCI_TOKEN
-      - FIRMWARE_UPDATE_TOKEN_FILE=/run/secrets/FIRMWARE_UPDATE_TOKEN
+      <<: [*grow-mqtt, *grow-influx]
+      MQTT_USERNAME: grow-app-site-daniel-home
+      MQTT_PASSWORD_FILE: /run/secrets/MQTT_GROW_APP_SITE_PASSWORD
+      # Explicit, stable id so the app + recorder never collide on a shared id.
+      MQTT_CLIENT_ID: grow-app-site-daniel-home
+      FIRMWARE_PACKAGE_PROVIDER: ghcr-oci
+      FIRMWARE_OCI_REGISTRY: ghcr.io
+      FIRMWARE_OCI_OWNER: dephekt
+      FIRMWARE_OCI_PACKAGE_PREFIX: grow-fleet
+      FIRMWARE_OCI_AUTH_USER: dephekt
+      FIRMWARE_OCI_TOKEN_FILE: /run/secrets/FIRMWARE_OCI_TOKEN
+      FIRMWARE_UPDATE_TOKEN_FILE: /run/secrets/FIRMWARE_UPDATE_TOKEN
     secrets:
       - MQTT_GROW_APP_SITE_PASSWORD
       - INFLUXDB_ADMIN_TOKEN
@@ -39,15 +51,16 @@ services:
       retries: 3
       start_period: 20s
 
-  # Per-site time-series store. LAN-local; the app + recorder reach it over the
-  # internal grow-mqtt network. Browsers never hit it directly — history is
-  # queried through grow-app's /api/history.
+  # Per-site time-series store. The history DATA PATH never touches the browser —
+  # grow-app queries it server-side via /api/history. The published port is for
+  # occasional admin UI / influx CLI only, and is intentionally bound to loopback
+  # (SSH-tunnel for remote admin) rather than the LAN.
   grow-influxdb:
     image: influxdb:2.7
     container_name: grow-influxdb
     restart: unless-stopped
     ports:
-      - "8086:8086"          # LAN-local admin UI / influx CLI
+      - "127.0.0.1:8086:8086"   # host-only admin UI / influx CLI (SSH-tunnel for remote admin)
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
@@ -55,6 +68,11 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=grow
       - DOCKER_INFLUXDB_INIT_BUCKET=daniel-home
       - DOCKER_INFLUXDB_INIT_RETENTION=365d
+      # NOTE: this admin token is baked into the bolt store on first boot (init runs
+      # only on an empty volume). After first deploy the secret file is no longer
+      # authoritative — rotating means `influx auth` in the running container (or a
+      # volume reset), not just re-injecting the secret. Scoped per-workload tokens
+      # are a tracked follow-up.
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN_FILE=/run/secrets/INFLUXDB_ADMIN_TOKEN
     volumes:
       - influxdb-data:/var/lib/influxdb2
@@ -65,34 +83,32 @@ services:
     networks:
       - grow-mqtt
     healthcheck:
-      test: ["CMD", "influx", "ping"]
+      # Prove setup actually finished: an unauthenticated `influx ping` answers as
+      # soon as the HTTP listener is up — before `influx setup` creates the org /
+      # bucket / token — which would release the recorder's service_healthy gate too
+      # early. An authenticated bucket lookup only succeeds once setup is complete.
+      test: ["CMD-SHELL", "influx bucket list --host http://localhost:8086 --org grow --name daniel-home --token \"$$(cat /run/secrets/INFLUXDB_ADMIN_TOKEN)\" >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 30s
 
   # History recorder: same image as the app, run as a sidecar. Subscribes to the
-  # site bus and writes numeric/binary readings into InfluxDB. Distinct
-  # MQTT_CLIENT_ID so it doesn't collide with the web app (both run as PID 1).
+  # site bus and writes numeric/binary readings into InfluxDB. Connects as a
+  # read-only MQTT user (recorder-daniel-home) — it never publishes — and with a
+  # distinct client id so it can't collide with the web app.
   grow-history-recorder:
     image: ghcr.io/dephekt/grow-app:edge-node24-bookworm-slim
     container_name: grow-history-recorder
     restart: unless-stopped
     command: ["node", "build-recorder/recorder.js"]
     environment:
-      - GROW_SITE=daniel-home
-      - MQTT_URL=mqtt://mosquitto-site:1883
-      - MQTT_USERNAME=grow-app-site-daniel-home
-      - MQTT_PASSWORD_FILE=/run/secrets/MQTT_GROW_APP_SITE_PASSWORD
-      - MQTT_TOPIC_PREFIX=grow/daniel-home
-      - MQTT_DISCOVERY_PREFIX=grow/daniel-home/_discovery
-      - MQTT_CLIENT_ID=grow-history-recorder-daniel-home
-      - INFLUX_URL=http://grow-influxdb:8086
-      - INFLUX_ORG=grow
-      - INFLUX_BUCKET=daniel-home
-      - INFLUX_TOKEN_FILE=/run/secrets/INFLUXDB_ADMIN_TOKEN
+      <<: [*grow-mqtt, *grow-influx]
+      MQTT_USERNAME: recorder-daniel-home
+      MQTT_PASSWORD_FILE: /run/secrets/MQTT_RECORDER_PASSWORD
+      MQTT_CLIENT_ID: grow-history-recorder-daniel-home
     secrets:
-      - MQTT_GROW_APP_SITE_PASSWORD
+      - MQTT_RECORDER_PASSWORD
       - INFLUXDB_ADMIN_TOKEN
     depends_on:
       grow-influxdb:
@@ -111,6 +127,8 @@ volumes:
 secrets:
   MQTT_GROW_APP_SITE_PASSWORD:
     file: ../mqtt/secrets/MQTT_GROW_APP_SITE_PASSWORD
+  MQTT_RECORDER_PASSWORD:
+    file: ../mqtt/secrets/MQTT_RECORDER_PASSWORD
   INFLUXDB_ADMIN_PASSWORD:
     file: ./secrets/INFLUXDB_ADMIN_PASSWORD
   INFLUXDB_ADMIN_TOKEN:

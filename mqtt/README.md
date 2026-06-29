@@ -17,7 +17,8 @@ the app layer by Pangolin, not by bridging the MQTT bus.)
 | User | Purpose |
 |---|---|
 | `edge-daniel-home` | ESPHome edge devices |
-| `grow-app-site-daniel-home` | Local site-mode `grow-app` server + history-recorder |
+| `grow-app-site-daniel-home` | Local site-mode `grow-app` server |
+| `recorder-daniel-home` | Read-only history-recorder (subscribes only) |
 
 ## Secrets
 
