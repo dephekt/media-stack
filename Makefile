@@ -62,6 +62,7 @@ REQUIRED_SECRETS := \
 	grow/secrets/INFLUXDB_ADMIN_TOKEN \
 	grow/secrets/FIRMWARE_OCI_TOKEN \
 	grow/secrets/FIRMWARE_UPDATE_TOKEN \
+	grow/secrets/GROW_AUTH_ADMIN_PASSWORD \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
 	penpot/secrets/penpot.env \
 	kanban/secrets/kanboard.env \
@@ -238,6 +239,7 @@ inject-agent-secrets:
 	read_agent_secret 'op://Agents/GitHub/ghcr-read-packages' monitoring/secrets/GHCR_READ_TOKEN.env; \
 	read_agent_secret 'op://Agents/GitHub/ghcr-read-packages' grow/secrets/FIRMWARE_OCI_TOKEN; \
 	read_agent_secret 'op://Agents/Grow App/firmware-update-token' grow/secrets/FIRMWARE_UPDATE_TOKEN; \
+	read_agent_secret 'op://Agents/Grow App/site-admin-login' grow/secrets/GROW_AUTH_ADMIN_PASSWORD; \
 	admin_password=$$(op-agent read 'op://Agents/Kanboard/password'); \
 	api_token=$$(op-agent read 'op://Agents/Kanboard/api token'); \
 	oauth_client_secret=$$(op-agent read 'op://Agents/Kanboard/oauth client secret'); \

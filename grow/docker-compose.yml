@@ -37,11 +37,20 @@ services:
       FIRMWARE_OCI_AUTH_USER: dephekt
       FIRMWARE_OCI_TOKEN_FILE: /run/secrets/FIRMWARE_OCI_TOKEN
       FIRMWARE_UPDATE_TOKEN_FILE: /run/secrets/FIRMWARE_UPDATE_TOKEN
+      # App-owned auth. The image defaults GROW_AUTH_DB to /data/auth.db (the
+      # grow-app-data volume below). The bootstrap admin secret only matters on
+      # the auth DB's first boot; it is inert afterward.
+      GROW_AUTH_ADMIN_PASSWORD_FILE: /run/secrets/GROW_AUTH_ADMIN_PASSWORD
     secrets:
       - MQTT_GROW_APP_SITE_PASSWORD
       - INFLUXDB_ADMIN_TOKEN
       - FIRMWARE_OCI_TOKEN
       - FIRMWARE_UPDATE_TOKEN
+      - GROW_AUTH_ADMIN_PASSWORD
+    volumes:
+      # SQLite auth DB (users, sessions, audit). Must persist across deploys —
+      # losing it logs everyone out and re-arms the bootstrap admin secret.
+      - grow-app-data:/data
     networks:
       - grow-mqtt
     healthcheck:
@@ -123,6 +132,7 @@ networks:
 volumes:
   influxdb-data:
   influxdb-config:
+  grow-app-data:
 
 secrets:
   MQTT_GROW_APP_SITE_PASSWORD:
@@ -137,3 +147,5 @@ secrets:
     file: ./secrets/FIRMWARE_OCI_TOKEN
   FIRMWARE_UPDATE_TOKEN:
     file: ./secrets/FIRMWARE_UPDATE_TOKEN
+  GROW_AUTH_ADMIN_PASSWORD:
+    file: ./secrets/GROW_AUTH_ADMIN_PASSWORD
