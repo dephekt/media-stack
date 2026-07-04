@@ -30,6 +30,13 @@ services:
       MQTT_PASSWORD_FILE: /run/secrets/MQTT_GROW_APP_SITE_PASSWORD
       # Explicit, stable id so the app + recorder never collide on a shared id.
       MQTT_CLIENT_ID: grow-app-site-daniel-home
+      # OpenSprinkler irrigation (grow-app #50): enable the in-app driver — it
+      # self-publishes station discovery, normalizes OS status, and sends run/stop
+      # commands to <base>/cmd over MQTT. Web app ONLY — deliberately not on the
+      # read-only recorder (it can't publish). Base topic defaults to
+      # <MQTT_TOPIC_PREFIX>/os = grow/daniel-home/os; OS runs with "Ignore Password"
+      # so there is no device secret to manage.
+      GROW_OS_ENABLED: "true"
       FIRMWARE_PACKAGE_PROVIDER: ghcr-oci
       FIRMWARE_OCI_REGISTRY: ghcr.io
       FIRMWARE_OCI_OWNER: dephekt
