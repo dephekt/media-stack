@@ -22,12 +22,17 @@ Daniel's LAN-local `grow-app` site-mode HMI.
   sensor readings to `grow-influxdb`. Uses ACL `read grow/daniel-home/#` and
   never publishes.
 
-The app enforces its own login (app-owned local accounts; per-site OIDC lands
-next). A bootstrap admin is created from `GROW_AUTH_ADMIN_PASSWORD` on the auth
-DB's first boot; the secret is inert afterward. The auth DB lives on the
-`grow-app-data` volume — deleting that volume logs everyone out and re-arms the
-bootstrap secret. The stack is not yet exposed through Pangolin; that lands with
-the OIDC follow-up (#9).
+The app enforces its own login: app-owned local accounts **plus** a confidential
+per-site OIDC client (Keycloak realm `home`, client `grow-site-daniel-home`).
+Access is granted by group claim — `/grow-admin` (global) or
+`/grow-site-daniel-home` (this site). A bootstrap admin is created from
+`GROW_AUTH_ADMIN_PASSWORD` on the auth DB's first boot; the secret is inert
+afterward. The auth DB lives on the `grow-app-data` volume — deleting that volume
+logs everyone out and re-arms the bootstrap secret. The stack is LAN-only for now
+(SSO works on the `192.168.8.3:3080` origin); public exposure through Pangolin
+(SSO disabled, routing only) is a follow-up (#9), at which point the
+`daniel.grow.dephekt.net` origin already registered in `GROW_AUTH_ORIGINS` goes
+live.
 
 ## Secrets
 
@@ -45,6 +50,8 @@ the OIDC follow-up (#9).
   `grow/secrets/FIRMWARE_UPDATE_TOKEN`
 - `op://Agents/Grow App/site-admin-login` ->
   `grow/secrets/GROW_AUTH_ADMIN_PASSWORD` *(bootstrap admin; first boot only)*
+- `op://Agents/Grow App/oidc-client-secret` ->
+  `grow/secrets/GROW_OIDC_CLIENT_SECRET` *(confidential OIDC client secret)*
 
 `MQTT_GROW_APP_SITE_PASSWORD` is also written to `mqtt/secrets/` by the same
 `make inject-agent-secrets` run (it is shared with the `mqtt` stack).
