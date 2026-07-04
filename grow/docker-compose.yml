@@ -61,8 +61,27 @@ services:
       # SQLite auth DB (users, sessions, audit). Must persist across deploys —
       # losing it logs everyone out and re-arms the bootstrap admin secret.
       - grow-app-data:/data
+    # Pangolin Blueprint: publish daniel.grow.dephekt.net through the edge. SSO is
+    # disabled — grow-app enforces its own OIDC/session auth (decision 19); Pangolin
+    # is routing + TLS only. newt (this host, on the proxy network) discovers these
+    # labels and registers the resource; Traefik issues the cert via LE Cloudflare
+    # DNS-01. Deploy through `make` so ${DOMAIN} interpolates (else registration
+    # breaks). The public https origin is already in GROW_AUTH_ORIGINS + the
+    # Keycloak client's redirect URIs.
+    labels:
+      - "pangolin.proxy-resources.grow-daniel-home.name=Grow Daniel Home"
+      - "pangolin.proxy-resources.grow-daniel-home.protocol=http"
+      - "pangolin.proxy-resources.grow-daniel-home.full-domain=daniel.grow.${DOMAIN}"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].enabled=true"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].method=http"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].port=3000"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].healthcheck.hostname=grow-app-site"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].healthcheck.port=3000"
+      - "pangolin.proxy-resources.grow-daniel-home.targets[0].healthcheck.path=/health"
+      - "pangolin.proxy-resources.grow-daniel-home.auth.sso-enabled=false"
     networks:
       - grow-mqtt
+      - proxy
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
       interval: 30s
@@ -137,6 +156,9 @@ services:
 
 networks:
   grow-mqtt:
+    external: true
+  # Shared frontend network newt/Traefik proxy onto (Pangolin edge routing).
+  proxy:
     external: true
 
 volumes:
