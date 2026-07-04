@@ -41,12 +41,22 @@ services:
       # grow-app-data volume below). The bootstrap admin secret only matters on
       # the auth DB's first boot; it is inert afterward.
       GROW_AUTH_ADMIN_PASSWORD_FILE: /run/secrets/GROW_AUTH_ADMIN_PASSWORD
+      # Confidential per-site OIDC client (Keycloak realm `home`). Access is
+      # granted by group claim: /grow-admin (global) or /grow-site-daniel-home
+      # (this site, matching GROW_SITE). GROW_AUTH_ORIGINS is the public site URL
+      # plus the LAN origin and must match the client's registered redirect URIs.
+      # SSO stays off until all four (issuer, client id, secret, ≥1 origin) are set.
+      GROW_OIDC_ISSUER: https://auth.dephekt.net/realms/home
+      GROW_OIDC_CLIENT_ID: grow-site-daniel-home
+      GROW_OIDC_CLIENT_SECRET_FILE: /run/secrets/GROW_OIDC_CLIENT_SECRET
+      GROW_AUTH_ORIGINS: https://daniel.grow.dephekt.net,http://192.168.8.3:3080
     secrets:
       - MQTT_GROW_APP_SITE_PASSWORD
       - INFLUXDB_ADMIN_TOKEN
       - FIRMWARE_OCI_TOKEN
       - FIRMWARE_UPDATE_TOKEN
       - GROW_AUTH_ADMIN_PASSWORD
+      - GROW_OIDC_CLIENT_SECRET
     volumes:
       # SQLite auth DB (users, sessions, audit). Must persist across deploys —
       # losing it logs everyone out and re-arms the bootstrap admin secret.
@@ -149,3 +159,5 @@ secrets:
     file: ./secrets/FIRMWARE_UPDATE_TOKEN
   GROW_AUTH_ADMIN_PASSWORD:
     file: ./secrets/GROW_AUTH_ADMIN_PASSWORD
+  GROW_OIDC_CLIENT_SECRET:
+    file: ./secrets/GROW_OIDC_CLIENT_SECRET
