@@ -37,12 +37,6 @@ services:
       # <MQTT_TOPIC_PREFIX>/os = grow/daniel-home/os; OS runs with "Ignore Password"
       # so there is no device secret to manage.
       GROW_OS_ENABLED: "true"
-      # Irrigation zone DB on the persistent /data volume (writable by the node uid),
-      # same as auth.db. The image doesn't yet default GROW_IRRIGATION_DB the way it
-      # defaults GROW_AUTH_DB=/data/auth.db, so set it explicitly — otherwise it falls
-      # back to ./data/irrigation.db (=/app/data), which the node user can't create
-      # (EACCES). Drop this once the image ships the ENV default.
-      GROW_IRRIGATION_DB: /data/irrigation.db
       FIRMWARE_PACKAGE_PROVIDER: ghcr-oci
       FIRMWARE_OCI_REGISTRY: ghcr.io
       FIRMWARE_OCI_OWNER: dephekt
