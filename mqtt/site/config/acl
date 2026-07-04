@@ -10,3 +10,10 @@ topic readwrite grow/daniel-home/#
 # never publishes, so it cannot drive hardware even if compromised.
 user recorder-daniel-home
 topic read grow/daniel-home/#
+
+# OpenSprinkler irrigation controller (not an ESPHome device) — scoped to its own
+# subtree only, so a leaked controller credential can't touch the rest of the site.
+# Publishes status under .../os/# and subscribes to .../os/cmd for run/stop
+# commands (which still require the OpenSprinkler device password's MD5).
+user opensprinkler-daniel-home
+topic readwrite grow/daniel-home/os/#
