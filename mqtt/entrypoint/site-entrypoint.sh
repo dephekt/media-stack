@@ -3,10 +3,11 @@ set -eu
 RUN=/run/mosquitto
 mkdir -p "$RUN"
 # Hashed password file: edge devices, the local site-mode grow-app (web server),
-# and the read-only history-recorder.
+# the read-only history-recorder, and the OpenSprinkler irrigation controller.
 mosquitto_passwd -b -c "$RUN/passwd" edge-daniel-home "$(cat /run/secrets/MQTT_EDGE_PASSWORD)"
 mosquitto_passwd -b "$RUN/passwd" grow-app-site-daniel-home "$(cat /run/secrets/MQTT_GROW_APP_SITE_PASSWORD)"
 mosquitto_passwd -b "$RUN/passwd" recorder-daniel-home "$(cat /run/secrets/MQTT_RECORDER_PASSWORD)"
+mosquitto_passwd -b "$RUN/passwd" opensprinkler-daniel-home "$(cat /run/secrets/MQTT_OPENSPRINKLER_PASSWORD)"
 cp /mosquitto/config/mosquitto.conf.tmpl "$RUN/mosquitto.conf"
 cp /mosquitto/config/acl "$RUN/acl"
 # mosquitto drops privileges to the 'mosquitto' user (uid 1883); make the runtime
