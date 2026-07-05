@@ -26,7 +26,7 @@ REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
 STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban cci
 
-SERVICES_core   := newt auth ldap homepage db update-manager agent-kb
+SERVICES_core   := newt auth ldap homepage db update-manager agent-kb jeems
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
 SERVICES_immich := immich-server immich-machine-learning redis database
 SERVICES_iptv   := iptvboss
@@ -75,6 +75,7 @@ MEDIA_SYNC_REQUIRED := \
 	core/config.env \
 	core/docker-compose.yml \
 	core/newt-entrypoint.sh \
+	core/jeems-site \
 	immich/.env \
 	immich/hwaccel.ml.yml \
 	immich/hwaccel.transcoding.yml \

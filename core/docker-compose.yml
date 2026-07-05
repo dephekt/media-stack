@@ -223,6 +223,27 @@ services:
     networks:
       - proxy
 
+  jeems:
+    image: nginx:1.27-alpine
+    container_name: jeems
+    restart: unless-stopped
+    volumes:
+      - /home/daniel/docker/core/jeems-site:/usr/share/nginx/html:ro
+    labels:
+      - "pangolin.proxy-resources.jeems.name=Jeems"
+      - "pangolin.proxy-resources.jeems.protocol=http"
+      - "pangolin.proxy-resources.jeems.full-domain=jeems.${DOMAIN}"
+      - "pangolin.proxy-resources.jeems.targets[0].method=http"
+      - "pangolin.proxy-resources.jeems.targets[0].port=80"
+      # Pangolin target health check (root returns 200 on the static site)
+      - "pangolin.proxy-resources.jeems.targets[0].healthcheck.hostname=jeems"
+      - "pangolin.proxy-resources.jeems.targets[0].healthcheck.port=80"
+      - "pangolin.proxy-resources.jeems.targets[0].healthcheck.path=/"
+      # Public — no SSO gate (findings for a friend; noindex handled in-page + robots.txt)
+      - "pangolin.proxy-resources.jeems.auth.sso-enabled=false"
+    networks:
+      - proxy
+
 volumes:
   keycloak-data:
     external: true
