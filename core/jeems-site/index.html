@@ -110,6 +110,12 @@
     width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
     display:grid;place-items:center;font-size:.82rem;font-weight:700}
 
+  .dlrow{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 8px}
+  .dl{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:650;font-size:.92rem;
+      padding:9px 14px;border-radius:10px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));
+      color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .dl:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+  .dl small{color:var(--muted);font-weight:400}
   footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);
     margin-top:34px;padding:22px 0 60px}
   footer b{color:var(--ink)}
@@ -132,6 +138,7 @@
 
 <nav>
   <div class="wrap">
+    <a href="#revised">✅ Revised config</a>
     <a href="#fix-first">🔴 Fix first</a>
     <a href="#correctness">Other bugs</a>
     <a href="#cleanups">Quick cleanups</a>
@@ -141,6 +148,45 @@
 </nav>
 
 <main class="wrap">
+
+  <section id="revised">
+    <h2>✅ Revised config — ready to review &amp; flash</h2>
+    <p class="sub">Rewritten from your notes: HA-independent, no reboot-on-disconnect,
+    local schedule entities, cleaned scripts + a P3 safety shot, de-duplicated math.</p>
+    <div class="rec" style="padding-top:16px">
+      <p><b>Download</b> — keep the <code>fragments/</code> folder next to the yaml, and run
+      <code>esphome config 2x4-brain.yaml</code> before flashing:</p>
+      <div class="dlrow">
+        <a class="dl" href="/config/2x4-brain.yaml" download>⬇ 2x4-brain.yaml <small>main config</small></a>
+        <a class="dl" href="/config/fragments/vpd.yaml" download>⬇ vpd.yaml <small>fragment</small></a>
+        <a class="dl" href="/config/fragments/shot_calc.yaml" download>⬇ shot_calc.yaml <small>fragment</small></a>
+        <a class="dl" href="/config/CHANGES.md" download>⬇ CHANGES.md <small>full changelog</small></a>
+      </div>
+      <h3>What changed</h3>
+      <ul>
+        <li><b>Never reboots on HA/Wi-Fi loss</b> — <code>api</code> + <code>wifi</code>
+          <code>reboot_timeout: 0s</code> (the default 15-min watchdog was the reboot cause).
+          Time now runs on <b>SNTP + your DS1307 RTC</b>, so the clock and logic survive with HA gone.</li>
+        <li><b>Local schedule entities</b> — maintenance mode is a local switch; lights-on/off +
+          P2-close are local <code>datetime</code> entities. Lights fire on a <b>minute match</b>,
+          with a <b>boot catch-up</b> that runs lights-on if it's already past the time.</li>
+        <li><b>Cleaned watering</b> — the hanging <code>while ipump</code> confirm loops are gone
+          (one <code>shot(seconds)</code> script that can't hang); events <b>skip cleanly</b> when HA
+          is down instead of wedging. New <b>P3 emergency shot</b> at the wilt floor. P2 frequency is
+          a real time-gate now, not a blocking delay.</li>
+        <li><b>De-duplicated math</b> — the 6 VPD lambdas → one <code>fragments/vpd.yaml</code> (×3 via
+          <code>packages:</code>); the 4 P1/P2 calcs → one <code>fragments/shot_calc.yaml</code> (×2).
+          Also fixed the drifted VPD constants. Everything else stays in the one main file.</li>
+        <li><b>Flash life</b> — <code>restore_value</code> dropped from the per-cycle counters (they
+          reset each morning anyway); real config values still persist.</li>
+        <li><b>Left for you</b> (flagged in the changelog): nutrient dosing still uses the soil EC
+          probe / skips Pump C; the pump can go fully local by moving it to a spare relay.</li>
+      </ul>
+      <p style="color:var(--muted);margin-top:.6em">Your P1-frequency crash fix is already in — I also
+      set its minimum to 1 as a backstop. Every change is tagged <code># &gt;&gt;&gt; CHANGED</code> /
+      <code># &gt;&gt;&gt; NEW</code> in the yaml so you can diff it against your original.</p>
+    </div>
+  </section>
 
   <section id="fix-first">
     <h2>Fix these three first</h2>

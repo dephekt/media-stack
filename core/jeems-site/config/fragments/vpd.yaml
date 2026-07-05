@@ -1,0 +1,49 @@
+# Reusable VPD + leaf-VPD template sensors (used as an ESPHome package).
+#
+# Replaces the six hand-copied VPD lambdas in the original config. It also fixes
+# the constant drift the copies had (ambient used 0.6108/17.27/237.3 while leaf
+# used 0.61078/17.2694/237.3) by using ONE canonical Magnus set everywhere, and
+# skips publishing when the source sensor is NaN.
+#
+# Pull it in once per air sensor via the top-level `packages:` block:
+#   packages:
+#     vpd_scd41: !include { file: fragments/vpd.yaml,
+#       vars: { prefix: "SCD41", tid: scd41temp, hid: scd41hum, vpd_id: scd41vpd, leaf_id: scd41vpdleaf } }
+#
+# vars:
+#   prefix  - display-name prefix (e.g. "SCD41")
+#   tid     - id of the source temperature sensor
+#   hid     - id of the source humidity sensor
+#   vpd_id  - id to give the ambient-VPD sensor this fragment creates
+#   leaf_id - id to give the leaf-VPD sensor this fragment creates
+
+sensor:
+  - platform: template
+    name: "${prefix} VPD"
+    id: ${vpd_id}
+    unit_of_measurement: kPa
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: 30s
+    lambda: |-
+      float t = id(${tid}).state;
+      float rh = id(${hid}).state;
+      if (isnan(t) || isnan(rh)) return {};
+      float svp = 0.61078f * expf((17.2694f * t) / (t + 237.3f));
+      return svp - (svp * rh / 100.0f);
+
+  - platform: template
+    name: "${prefix} VPD Leaf"
+    id: ${leaf_id}
+    unit_of_measurement: kPa
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: 30s
+    lambda: |-
+      float t = id(${tid}).state;
+      float rh = id(${hid}).state;
+      if (isnan(t) || isnan(rh)) return {};
+      float lt = t + id(leafoffset).state;
+      float leaf_svp = 0.61078f * expf((17.2694f * lt) / (lt + 237.3f));
+      float ambient_avp = 0.61078f * expf((17.2694f * t) / (t + 237.3f)) * (rh / 100.0f);
+      return leaf_svp - ambient_avp;

@@ -1,0 +1,1471 @@
+# =============================================================================
+#  2x4 Brain - REVISED config for the KinCony KC868-A6
+#  ESPHome crop-steering / fertigation controller
+#
+#  This is a review rewrite. See CHANGES.md for the full change list mapped to
+#  your requests. Highlights:
+#   - Never reboots on HA/Wi-Fi loss (reboot_timeout: 0s), runs on SNTP + DS1307
+#     RTC so timekeeping is HA-independent.
+#   - Maintenance mode + lights-on/off + P2-window-close are now LOCAL ESPHome
+#     entities (a switch + three `datetime` time entities), not pulled from HA.
+#   - Lights scripts fire on a minute match, with a boot/resync catch-up that
+#     runs lights-on if it's already past lights-on time and today's run was missed.
+#   - P1/P2 event scripts rewritten (no hanging pump-confirm loops); they SKIP
+#     cleanly instead of hanging when HA is down. New P3 emergency-shot event.
+#   - VPD math and P1/P2 shot math de-duplicated into fragments/ via !include.
+#   - Flash-friendly: transient counters no longer restore_value.
+#
+#  Validate on your machine before flashing:  esphome config 2x4-brain.yaml
+# =============================================================================
+
+substitutions:
+  # The irrigation pump is on a Home-Assistant-controlled plug. This is the one
+  # thing that still needs HA. To make watering fully HA-independent, wire the
+  # pump to a spare board relay and swap the two homeassistant.service calls in
+  # the `shot` script for `switch.turn_on/off: <relay>`.
+  switch_irrigation_pump: "switch.pump_valve"
+
+# >>> CHANGED: the copy-pasted VPD (x6) and P1/P2 shot-math (x4) lambdas are now
+# two shared fragments, pulled in per sensor/phase as packages. Package list
+# values are concatenated, so each fragment's sensors are appended to `sensor:`.
+packages:
+  vpd_scd41: !include { file: fragments/vpd.yaml, vars: { prefix: "SCD41", tid: scd41temp,        hid: scd41hum,      vpd_id: scd41vpd, leaf_id: scd41vpdleaf } }
+  vpd_sht41: !include { file: fragments/vpd.yaml, vars: { prefix: "SHT41", tid: Temperaturesht41, hid: Humiditysht41,  vpd_id: sht41vpd, leaf_id: sht41vpdleaf } }
+  vpd_aht10: !include { file: fragments/vpd.yaml, vars: { prefix: "AHT10", tid: Temperatureaht10, hid: Humidityaht10,  vpd_id: aht10vpd, leaf_id: aht10vpdleaf } }
+  shot_p1:   !include { file: fragments/shot_calc.yaml, vars: { prefix: "P1", size_id: p1_shot_size, time_id: p1_irrigation_time, vol_id: p1_shot_volume } }
+  shot_p2:   !include { file: fragments/shot_calc.yaml, vars: { prefix: "P2", size_id: p2_shot_size, time_id: p2_irrigation_time, vol_id: p2_shot_volume } }
+
+esphome:
+  name: "2x4-brain"
+  friendly_name: 2x4 Brain
+  on_boot:
+    then:
+      - script.execute: bootupscript
+      - ds1307.read_time:        # load RTC into system time immediately (valid before Wi-Fi/HA)
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+preferences:
+  # Batches NVS writes; the churny state globals only hit flash once an hour.
+  flash_write_interval: 60min
+
+logger:
+  level: INFO                    # >>> CHANGED: was VERBOSE (constant serial flood + CPU)
+  logs:
+    modbus_controller.sensor: WARN
+    modbus_controller: WARN
+    mod_ph: INFO
+  on_message:
+    level: WARN                  # >>> CHANGED: only warnings/errors go to the HA text_sensor (was every DEBUG line)
+    then:
+      - lambda: |-
+          id(esp_log).publish_state(message);
+
+api:
+  encryption:
+    key: !secret api_key
+  reboot_timeout: 0s             # >>> CHANGED: never reboot just because HA disconnected
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s             # >>> CHANGED: never reboot on Wi-Fi loss; keep running on the RTC
+  ap:
+    ssid: "2X4-Brain Fallback Hotspot"
+    password: !secret wifi_password
+
+captive_portal:
+web_server:
+  port: 80                       # local control/monitoring even with no HA
+  ota: false
+
+# -----------------------------------------------------------------------------
+# Globals (restore state across reboots)
+# -----------------------------------------------------------------------------
+globals:
+  - id: g_p3_end_wc
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_p3_start_wc
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_p3_wc_at_lights_on
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_p3_wc_at_lights_off
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_p1_at_field_capacity
+    type: bool
+    restore_value: yes
+  - id: g_field_capacity
+    type: float
+    initial_value: '0'
+    restore_value: yes
+  - id: g_p1_runoff_wc
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_last_high
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  - id: g_last_low
+    type: float
+    restore_value: yes
+    initial_value: '0'
+  # >>> NEW: day-of-year that lights-on last ran, for the boot/resync catch-up.
+  - id: g_lights_on_ran
+    type: int
+    restore_value: yes
+    initial_value: '-1'
+  # >>> NEW: earliest millis() at which the next P2 shot is allowed (frequency
+  # gate). Not restored: after a reboot we simply allow the next shot immediately.
+  - id: g_next_p2_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/u-fire/ESPHomeComponents/
+
+uart:
+  - id: rs485
+    tx_pin: GPIO27
+    rx_pin: GPIO14
+    baud_rate: 4800
+    stop_bits: 1
+  - id: rs232        # kept (unused for now, reserved for later)
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+
+modbus:
+  id: modbus1
+  uart_id: rs485
+
+modbus_controller:
+  - id: thcs1
+    update_interval: 20s
+    address: 0x1
+    command_throttle: 100ms
+    setup_priority: -2
+    modbus_id: modbus1
+  - id: thcs2
+    update_interval: 20s
+    address: 0x2
+    command_throttle: 100ms
+    setup_priority: -1
+    modbus_id: modbus1
+
+spi:                 # kept (unused for now, reserved for later)
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+i2c:
+  sda: GPIO4
+  scl:
+    number: GPIO15
+    ignore_strapping_warning: true   # board-mandated pinout on the KC868-A6
+
+one_wire:
+  - platform: gpio
+    pin: GPIO32
+
+output:
+  - platform: esp32_dac
+    pin: GPIO26
+    id: dac_output1
+  - platform: esp32_dac
+    pin: GPIO25
+    id: dac_output2
+
+light:
+  # 0-10V-style dimmers for the grow lights (via the DAC + your external buffer).
+  - platform: monochromatic
+    id: light1
+    output: dac_output1
+    gamma_correct: 2
+    name: "Dimmer 1"
+  - platform: monochromatic
+    id: light2
+    output: dac_output2
+    gamma_correct: 2
+    name: "Dimmer 2"
+
+pcf8574:
+  - id: inputs
+    address: 0x22
+  - id: outputs
+    address: 0x24
+
+# -----------------------------------------------------------------------------
+# Time  >>> CHANGED: HA time platform replaced with SNTP; DS1307 kept as the RTC
+# so the clock survives reboots and Wi-Fi/HA outages. The once-a-minute tick now
+# compares against the LOCAL datetime entities (minute granularity) and does the
+# boot/resync catch-up.
+# -----------------------------------------------------------------------------
+time:
+  - platform: sntp
+    id: es_time
+    on_time:
+      - seconds: 0
+        minutes: /1
+        then:
+          - lambda: |-
+              auto now = id(es_time).now();
+              if (!now.is_valid()) return;
+              int nowmin = now.hour * 60 + now.minute;
+              int today  = now.day_of_year;
+              int on   = id(lights_on).hour        * 60 + id(lights_on).minute;
+              int off  = id(lights_off).hour       * 60 + id(lights_off).minute;
+              int p2c  = id(p2_window_close).hour  * 60 + id(p2_window_close).minute;
+
+              // "Day" window, tolerant of a schedule that wraps past midnight.
+              bool in_day = (on <= off) ? (nowmin >= on && nowmin < off)
+                                        : (nowmin >= on || nowmin < off);
+
+              // Daily edge triggers (fire on the matching minute)
+              if (nowmin == on)  id(lightsonscript).execute();
+              if (nowmin == off) id(lightsoffscript).execute();
+              if (nowmin == p2c) id(startP3).execute();
+
+              // Catch-up: it's daytime but lights-on hasn't run today (e.g. we
+              // booted after lights-on, or missed the minute). lightsonscript
+              // sets g_lights_on_ran, so this fires at most once per day.
+              if (in_day && id(g_lights_on_ran) != today) {
+                ESP_LOGI("time", "Catch-up: past lights-on, running lights-on");
+                id(lightsonscript).execute();
+              }
+              // Booted during the night and not already in P3 -> settle into P3.
+              if (!in_day && id(irrigation_phase).state != "P3") {
+                ESP_LOGI("time", "Catch-up: outside day window, settling into P3");
+                id(lightsoffscript).execute();
+              }
+
+              // P1 shot cadence (guarded against divide-by-zero)
+              int freq = (int) id(p1_frequency).state;
+              if (freq > 0 && (now.minute % freq) == 0
+                  && id(irrigation_phase).state == "P1") {
+                id(p1event).execute();
+              }
+    on_time_sync:
+      then:
+        - ds1307.write_time:     # keep the RTC accurate whenever SNTP syncs
+  - platform: ds1307
+    id: rtc_time
+
+# -----------------------------------------------------------------------------
+# Local schedule entities  >>> NEW: lights-on/off + P2 window close as on-device
+# `datetime` time entities (settable from the dashboard / web UI, restored across
+# reboots). Replaces the HA input_datetime text_sensors.
+# -----------------------------------------------------------------------------
+datetime:
+  - platform: template
+    id: lights_on
+    name: "Lights On"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "06:00:00"
+    entity_category: config
+  - platform: template
+    id: lights_off
+    name: "Lights Off"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "00:00:00"
+    entity_category: config
+  - platform: template
+    id: p2_window_close
+    name: "P2 Window Close"
+    type: time
+    optimistic: true
+    restore_value: true
+    initial_value: "20:00:00"
+    entity_category: config
+
+####################################
+##      N  U  M  B  E  R  S       ##
+####################################
+number:
+  - platform: template
+    id: ph_goal
+    name: "pH Target"
+    icon: "mdi:ph"
+    min_value: 4.5
+    max_value: 8
+    step: 0.1
+    initial_value: 5.8
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: ph_tolerance
+    name: "pH Tolerance"
+    icon: "mdi:target-variant"
+    restore_value: true
+    min_value: 0.1
+    max_value: 2
+    initial_value: 0.3
+    step: 0.1
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: dosing_time
+    name: "Dosing Time"
+    icon: "mdi:clock-outline"
+    min_value: 1
+    max_value: 100
+    step: 1
+    initial_value: 5
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: dosing_interval
+    name: "Dosing Interval"
+    icon: "mdi:calendar-clock"
+    initial_value: 5
+    min_value: 1
+    max_value: 3600
+    step: 1
+    optimistic: True
+    restore_value: true
+    mode: box
+    entity_category: config
+  - platform: template
+    id: doses_max
+    name: "Max Doses"
+    icon: "mdi:numeric"
+    initial_value: 5
+    min_value: 1
+    max_value: 50
+    step: 1
+    optimistic: True
+    restore_value: true
+    mode: BOX
+    entity_category: config
+  - platform: template
+    id: ph_dose_counter
+    name: "pH Dose Attempts"
+    icon: "mdi:numeric"
+    initial_value: 0
+    min_value: 0
+    max_value: 200
+    step: 1
+    mode: BOX
+    optimistic: True
+    restore_value: false          # >>> CHANGED: transient counter, don't wear flash
+    on_value:
+      - text_sensor.template.publish:
+          id: ph_dose_counter_display
+          state: !lambda "return {to_string(id(ph_dose_counter).state)};"
+  - platform: template
+    id: ec_target
+    name: "EC Target"
+    min_value: 0
+    max_value: 10000
+    step: 10
+    initial_value: 1200
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: ec_tolerance
+    name: "EC Tolerance"
+    icon: "mdi:target-variant"
+    restore_value: true
+    min_value: 10
+    max_value: 1000
+    initial_value: 300
+    step: 10
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: ec_dose_counter
+    name: "EC Dose Attempts"
+    icon: "mdi:numeric"
+    initial_value: 0
+    min_value: 0
+    max_value: 20
+    step: 1
+    mode: BOX
+    optimistic: True
+    restore_value: false          # >>> CHANGED: transient counter
+    on_value:
+      - text_sensor.template.publish:
+          id: ec_dose_counter_display
+          state: !lambda "return {to_string(id(ec_dose_counter).state)};"
+  - platform: template
+    id: ec_dosing_time
+    name: "Nutrient Dosing Time"
+    icon: "mdi:clock-outline"
+    min_value: 1
+    max_value: 100
+    step: 1
+    initial_value: 4
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: ec_doses_max
+    name: "Max Nutrient Doses"
+    icon: "mdi:numeric"
+    initial_value: 5
+    min_value: 1
+    max_value: 25
+    step: 1
+    optimistic: True
+    restore_value: true
+    mode: SLIDER
+    entity_category: config
+  - platform: template
+    id: media_volume
+    name: "Media Volume"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 20
+    initial_value: 2
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "Gallons"
+  - platform: template
+    id: media_vwc
+    name: "Media VWC"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 100
+    initial_value: 66.7
+    step: 0.1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: plant_count
+    name: "Plant Count"
+    icon: "mdi:sprout"
+    min_value: 1
+    max_value: 36
+    initial_value: 9
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "plants"
+  - platform: template
+    id: leafoffset
+    name: "leaf temp offset"
+    icon: "mdi:sprout"
+    min_value: -10
+    max_value: 10
+    initial_value: -1
+    step: 0.1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "C"
+  - platform: template
+    id: drip_rate
+    name: "Drip Rate"
+    icon: "mdi:water-percent"
+    min_value: 1
+    max_value: 100000
+    initial_value: 1250
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: ml/minute
+  - platform: template
+    id: p0_dryback_target
+    name: "P0 Dryback Target"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 15
+    initial_value: 3
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: p1_frequency
+    name: "P1 Frequency"
+    icon: "mdi:water-percent"
+    min_value: 1                  # >>> CHANGED: was 0 (0 caused a divide-by-zero crash); tick also guards freq>0
+    max_value: 60
+    initial_value: 15
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: minutes
+  - platform: template
+    id: p1_shot_size
+    name: "P1 Shot %"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 25
+    initial_value: 5
+    step: 0.1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: p1_target_shots
+    name: "P1 Target Shots"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 16
+    initial_value: 5
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+  - platform: template
+    id: p1_shot_count
+    name: "P1 Shots"
+    internal: true
+    min_value: 0
+    max_value: 33
+    initial_value: 0
+    step: 1
+    restore_value: false          # >>> CHANGED: daily counter, reset each morning; don't wear flash
+    optimistic: True
+    on_value:
+      - text_sensor.template.publish:
+          id: p1_shot_count_display
+          state: !lambda "return {to_string(round(id(p1_shot_count).state))};"
+  - platform: template
+    id: p2_ec_target
+    name: "P2 EC Target"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 100
+    initial_value: 3.0
+    step: 0.1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "EC"
+  - platform: template
+    id: p2_dryback_target
+    name: "P2 Dryback Target"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 100
+    initial_value: 0
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: p2_shot_size
+    name: "P2 Shot Size"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 100
+    initial_value: 0
+    step: 0.1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: p2_frequency
+    name: "P2 Frequency"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 600
+    initial_value: 60
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: minutes
+  - platform: template
+    id: p3_dryback_target
+    name: "P3 Dryback Target"
+    icon: "mdi:water-percent"
+    min_value: 0
+    max_value: 100
+    initial_value: 0
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: p3_vwc_low_limit
+    name: "P3 VWC Low Limit"
+    icon: "mdi:alert-octagon"
+    min_value: 0
+    max_value: 100
+    initial_value: 20
+    step: 1
+    restore_value: true
+    optimistic: True
+    mode: box
+    entity_category: config
+    unit_of_measurement: "%"
+  - platform: template
+    id: daily_irrigation_events
+    name: "Daily Irrigation Events"
+    internal: true
+    min_value: 0
+    max_value: 50
+    initial_value: 0
+    step: 1
+    restore_value: false          # >>> CHANGED: daily counter; don't wear flash
+    optimistic: True
+    on_value:
+      - text_sensor.template.publish:
+          id: daily_shot_count_display
+          state: !lambda "return {to_string(round(id(daily_irrigation_events).state))};"
+
+####################################
+## H A R D W A R E  S E N S O R S ##
+####################################
+sensor:
+  # --- SCD41 CO2 / temp / hum ---
+  - platform: scd4x
+    automatic_self_calibration: false
+    update_interval: 10s
+    co2:
+      name: "SCD41 CO2"
+    temperature:
+      name: "SCD41 Temperature"
+      id: scd41temp
+      on_value:
+        then:
+          - component.update: scd41vpd
+    humidity:
+      name: "SCD41 Humidity"
+      id: scd41hum
+      on_value:
+        then:
+          - component.update: scd41vpd
+
+  # --- SHT41 temp / hum ---
+  - platform: sht4x
+    temperature:
+      name: "sht41 Temperature"
+      id: "Temperaturesht41"
+      on_value:
+        then:
+          - component.update: sht41vpd
+    humidity:
+      name: "sht41 Humidity"
+      id: "Humiditysht41"
+      on_value:
+        then:
+          - component.update: sht41vpd
+    update_interval: 10s
+
+  # --- AHT10 temp / hum ---
+  - platform: aht10
+    temperature:
+      name: "aht10 Temperature"
+      id: "Temperatureaht10"
+      filters:
+        - median: { window_size: 10, send_every: 3, send_first_at: 1 }
+      on_value:
+        then:
+          - component.update: aht10vpd
+    humidity:
+      name: "aht10 Humidity"
+      id: "Humidityaht10"
+      filters:
+        - median: { window_size: 10, send_every: 3, send_first_at: 1 }
+      on_value:
+        then:
+          - component.update: aht10vpd
+    update_interval: 30s
+
+  # VPD / leaf-VPD sensors for SCD41 / SHT41 / AHT10 come from the `packages:`
+  # block at the top of this file (fragments/vpd.yaml).
+
+  - platform: dallas_temp
+    name: Temp Dallas
+    update_interval: 30s
+
+  ## THC-S soil sensor 1 ##
+  - platform: modbus_controller
+    name: "THC-S Moisture"
+    id: WC
+    address: 0x0000
+    unit_of_measurement: "%"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - lambda: return (x / 10);
+    state_class: measurement
+    modbus_controller_id: thcs1
+  - platform: modbus_controller
+    name: "THC-S Temp"
+    id: C
+    address: 0x0001
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - lambda: return x / 10;
+    state_class: measurement
+    modbus_controller_id: thcs1
+  - platform: modbus_controller
+    name: "THC-S Conductivity"
+    id: EC
+    address: 0x0002
+    unit_of_measurement: "us/cm"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    state_class: measurement
+    modbus_controller_id: thcs1
+  - platform: modbus_controller
+    name: "THC-S TDS"
+    disabled_by_default: True     # kept, off by default
+    id: TDS
+    address: 0x0004
+    unit_of_measurement: "ppm"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    state_class: measurement
+    modbus_controller_id: thcs1
+
+  - platform: template
+    name: "THC-S VWC"
+    id: VWC
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      float soil_hum = id(WC).state;
+      if (isnan(soil_hum)) return {};
+      return -0.0020844495456097786f * soil_hum * soil_hum
+             + 0.8758395803818368f * soil_hum
+             - 0.007765958483453483f;
+    state_class: measurement
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - script.execute: vwc_check
+
+  - platform: template
+    name: "THC-S pwEC"
+    id: pw_ec
+    state_class: measurement
+    unit_of_measurement: "ms/cm"
+    accuracy_decimals: 1
+    update_interval: 30s
+    lambda: |-
+      float soil_ec = id(EC).state;
+      float soil_temp = id(C).state;
+      float soil_hum = id(WC).state;
+      if (isnan(soil_ec) || isnan(soil_temp) || isnan(soil_hum)) return {};
+      soil_ec = 1.93f * soil_ec - 270.8f;
+      soil_ec = soil_ec / (1.0f + 0.019f * (soil_temp - 25));
+      float bulk_perm = 1.3088f + 0.1439f * soil_hum + 0.0076f * soil_hum * soil_hum;
+      float pore_perm = 80.3f - 0.37f * (soil_temp - 20);
+      if (bulk_perm > 4.1f)
+        return (pore_perm * soil_ec) / (bulk_perm - 4.1f) / 1000.0f;   // Hilhorst 2000
+      return 0;
+
+  ## THC-S soil sensor 2 ##
+  - platform: modbus_controller
+    name: "THC-S 2 Moisture"
+    id: WC2
+    address: 0x0000
+    unit_of_measurement: "%"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - lambda: return (x / 10);
+    state_class: measurement
+    modbus_controller_id: thcs2
+  - platform: modbus_controller
+    name: "THC-S 2 Temp"
+    id: C2
+    address: 0x0001
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - lambda: return x / 10;
+    state_class: measurement
+    modbus_controller_id: thcs2
+    on_value:
+      then:
+        - component.update: ph
+  - platform: modbus_controller
+    name: "THC-S 2 Conductivity"
+    id: EC2
+    address: 0x0002
+    unit_of_measurement: "us/cm"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    state_class: measurement
+    modbus_controller_id: thcs2
+  - platform: modbus_controller
+    name: "THC-S 2 TDS"
+    disabled_by_default: True
+    id: TDS2
+    address: 0x0004
+    unit_of_measurement: "ppm"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    state_class: measurement
+    modbus_controller_id: thcs2
+
+  - platform: mod_ph
+    id: ph
+    name: pH
+    update_interval: 15s
+    on_value:
+      then:
+        - if:
+            condition:
+              - switch.is_on: auto_ph
+              - switch.is_off: maintenance_mode        # >>> CHANGED: local switch (was HA text_sensor)
+              - not:
+                  script.is_running: ph_dosing_script
+            then:
+              - script.execute: ph_dosing_script
+
+  ##################################
+  ## V I R T U A L  S E N S O R S ##
+  ##################################
+
+  # P1/P2 irrigation-time + shot-volume sensors come from the `packages:` block
+  # at the top of this file (fragments/shot_calc.yaml).
+
+  - platform: template
+    id: p1_runoff_wc
+    name: "p1 Runoff VWC"
+    icon: "mdi:water-percent"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_p1_runoff_wc) = x;'
+
+  - platform: template
+    id: p2_min_wc_target
+    name: "P2 Min VWC Target"
+    icon: "mdi:water-percent"
+    unit_of_measurement: "%"
+    lambda: |-
+      if (id(steering_phase).state == "Generative - Flip"
+          || id(steering_phase).state == "Generative - Finish")
+        return id(field_capacity).state - id(p2_dryback_target).state;
+      return id(p1_runoff_wc).state - id(p2_dryback_target).state;
+
+  - platform: template
+    id: p3_end_wc
+    name: "P3 End VWC"
+    icon: "mdi:water-percent"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_p3_end_wc) = x;'
+  - platform: template
+    id: p3_last_dryback
+    name: "P3 Last Dryback"
+    icon: "mdi:water-percent"
+    lambda: return id(p3_start_wc).state - id(p3_end_wc).state;
+    unit_of_measurement: "%"
+  - platform: template
+    id: p3_start_wc
+    name: "P3 Start WC"
+    icon: "mdi:water-percent"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_p3_start_wc) = x;'
+  - platform: template
+    id: p3_wc_at_lights_on
+    name: "P3 WC at Lights On"
+    icon: "mdi:lightbulb-on-outline"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_p3_wc_at_lights_on) = x;'
+  - platform: template
+    id: p3_wc_at_lights_off
+    name: "P3 WC at Lights Off"
+    icon: "mdi:lightbulb-on-outline"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_p3_wc_at_lights_off) = x;'
+  - platform: template
+    id: currentdryback
+    name: "Current Dryback"
+    icon: "mdi:water-percent"
+    lambda: return id(last_high).state - id(VWC).state;
+    unit_of_measurement: "%"
+  - platform: template
+    id: field_capacity
+    name: "Field Capacity"
+    icon: "mdi:water-percent"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_field_capacity) = x;'
+  - platform: template
+    id: last_high
+    name: "Last High VWC"
+    icon: "mdi:arrow-up-bold-circle-outline"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_last_high) = x;'
+  - platform: template
+    id: last_low
+    name: "Last Low VWC"
+    icon: "mdi:arrow-down-bold-circle-outline"
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - lambda: 'id(g_last_low) = x;'
+  - platform: template
+    id: p3_target_wc
+    name: "P3 Target VWC"
+    icon: "mdi:water-percent"
+    lambda: return id(last_high).state - id(p3_dryback_target).state;
+    unit_of_measurement: "%"
+  - platform: template
+    id: total_daily_ml_estimate
+    name: "Daily ml use estimate"
+    icon: "mdi:water-check"
+    unit_of_measurement: "liters"
+    lambda: |-
+      float ml_p1 = id(p1_shot_volume).state * id(plant_count).state * id(p1_shot_count).state;
+      float p2_events = id(daily_irrigation_events).state - id(p1_shot_count).state;
+      float ml_p2 = id(p2_shot_volume).state * id(plant_count).state * p2_events;
+      return (ml_p1 + ml_p2) / 1000.0f;
+
+  ## Diagnostics ##
+  - platform: wifi_signal
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "Signal %"
+    entity_category: "diagnostic"
+  - platform: uptime
+    name: Uptime
+    update_interval: 60s
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: gpio
+    name: "Float Switch"
+    pin: { pcf8574: inputs, number: 0, mode: INPUT, inverted: true }
+  - platform: gpio
+    name: "KC868-IN-2"
+    pin: { pcf8574: inputs, number: 1, mode: INPUT, inverted: true }
+  - platform: gpio
+    name: "KC868-IN-3"
+    pin: { pcf8574: inputs, number: 2, mode: INPUT, inverted: true }
+  - platform: gpio
+    name: "KC868-IN-4"
+    pin: { pcf8574: inputs, number: 3, mode: INPUT, inverted: true }
+  - platform: template
+    id: p3_needs_water
+    name: "P3 Needs Water"
+    lambda: 'return id(VWC).state <= id(p3_vwc_low_limit).state;'
+  - platform: template
+    id: p1_at_field_capacity
+    name: "At Field Capacity"
+  # HA mirror of the pump plug (display only; no script blocks on it anymore)
+  - platform: homeassistant
+    name: "Irrigation Pump"
+    id: ipump
+    entity_id: ${switch_irrigation_pump}
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+      entity_category: diagnostic
+  - platform: template
+    name: "pH adjust attempts"
+    id: ph_dose_counter_display
+    icon: mdi:tally-mark-5
+  - platform: template
+    name: "EC adjust attempts"
+    id: ec_dose_counter_display
+    icon: mdi:tally-mark-5
+  - platform: template
+    name: "P1 Shots"
+    id: p1_shot_count_display
+    icon: mdi:tally-mark-5
+  - platform: template
+    name: "Daily Shots"
+    id: daily_shot_count_display
+    icon: mdi:tally-mark-5
+  - platform: template
+    name: "ESP Log"
+    id: esp_log
+    icon: "mdi:console"
+    entity_category: diagnostic
+
+switch:
+  - platform: gpio
+    name: "pH Down Pump"
+    id: relay_1
+    pin: { pcf8574: outputs, number: 0, mode: OUTPUT, inverted: true }
+  - platform: gpio
+    name: "pH Up Pump"
+    id: relay_2
+    pin: { pcf8574: outputs, number: 1, mode: OUTPUT, inverted: true }
+  - platform: gpio
+    name: "Nutrient A Pump"
+    id: relay_3
+    pin: { pcf8574: outputs, number: 2, mode: OUTPUT, inverted: true }
+  - platform: gpio
+    name: "Nutrient B Pump"
+    id: relay_4
+    pin: { pcf8574: outputs, number: 3, mode: OUTPUT, inverted: true }
+  - platform: gpio
+    name: "Nutrient C Pump"
+    id: relay_5
+    pin: { pcf8574: outputs, number: 4, mode: OUTPUT, inverted: true }
+  - platform: gpio
+    name: "Relay 6"
+    id: relay_6         # kept spare (candidate for a local irrigation-pump relay)
+    pin: { pcf8574: outputs, number: 5, mode: OUTPUT, inverted: true }
+  - platform: restart
+    name: "restart"
+  - platform: template
+    name: "Auto Water"
+    id: auto_water
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    name: "Auto pH"
+    id: auto_ph
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: "Auto dose"
+    id: auto_dose
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  - platform: template
+    name: "P2 end shot"
+    id: p2_end_shot
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  # >>> NEW: maintenance mode is now a LOCAL switch (was an HA input_boolean).
+  - platform: template
+    name: "Maintenance Mode"
+    id: maintenance_mode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: "mdi:wrench-clock"
+
+select:
+  - platform: template
+    name: "Steering Phase"
+    id: steering_phase
+    options: ["Vegetative - Veg", "Generative - Flip", "Vegetative - Bulk", "Generative - Finish"]
+    initial_option: "Vegetative - Veg"
+    optimistic: true
+    restore_value: True
+  - platform: template
+    name: "Irrigation Phase"
+    id: irrigation_phase
+    options: ["P0", "P1", "P2", "P3"]
+    initial_option: "P3"
+    optimistic: True
+    restore_value: True
+
+button:
+  - platform: template
+    name: pH Calibrate Low 4.0
+    icon: mdi:format-vertical-align-bottom
+    on_press: { lambda: 'id(ph).calibrateLow(4.0);' }
+  - platform: template
+    name: pH Calibrate Mid 7.0
+    icon: mdi:format-vertical-align-center
+    on_press: { lambda: 'id(ph).calibrateMid(7.0);' }
+  - platform: template
+    name: pH Calibrate High 10.0
+    icon: mdi:format-vertical-align-top
+    on_press: { lambda: 'id(ph).calibrateHigh(10.0);' }
+  - platform: template
+    name: pH Calibrate Reset
+    icon: mdi:restore
+    on_press: { lambda: 'id(ph).calibrateReset();' }
+  - platform: template
+    name: "Run lights on script"
+    on_press: { then: [ script.execute: lightsonscript ] }
+  - platform: template
+    name: "Run lights off script"
+    on_press: { then: [ script.execute: lightsoffscript ] }
+  - platform: template
+    name: "Run VWC Check script"
+    on_press: { then: [ script.execute: vwc_check ] }
+  - platform: template
+    name: "Run p1 event script"
+    on_press: { then: [ script.execute: p1event ] }
+  - platform: template
+    name: "Run p2 event script"
+    on_press: { then: [ script.execute: p2event ] }
+  - platform: template
+    name: "Run p3 event script"
+    on_press: { then: [ script.execute: p3event ] }
+  - platform: template
+    name: "Run bootup script"
+    on_press: { then: [ script.execute: bootupscript ] }
+  - platform: template
+    name: "set FC=VWC and enable p2"
+    on_press:
+      then:
+        - lambda: |-
+            id(field_capacity).publish_state(id(VWC).state);
+            id(p1_runoff_wc).publish_state(id(VWC).state);
+            id(last_low).publish_state(id(VWC).state);
+            id(last_high).publish_state(id(VWC).state);
+            id(p1_at_field_capacity).publish_state(true);
+            auto c = id(irrigation_phase).make_call(); c.set_option("P2"); c.perform();
+  - platform: factory_reset
+    name: Restart with Factory Default Settings
+  - platform: template
+    name: "Run nutrient dose script"
+    on_press: { then: [ script.execute: nutrient_dosing_script ] }
+  - platform: template
+    name: "Run ph dose script"
+    on_press: { then: [ script.execute: ph_dosing_script ] }
+
+# =============================================================================
+#  Scripts
+# =============================================================================
+script:
+  # --- Restore state on boot ---
+  - id: bootupscript
+    mode: single
+    then:
+      - lambda: |-
+          id(last_low).publish_state(id(g_last_low));
+          id(last_high).publish_state(id(g_last_high));
+          id(p1_runoff_wc).publish_state(id(g_p1_runoff_wc));
+          id(field_capacity).publish_state(id(g_field_capacity));
+          id(p3_wc_at_lights_off).publish_state(id(g_p3_wc_at_lights_off));
+          id(p3_wc_at_lights_on).publish_state(id(g_p3_wc_at_lights_on));
+          id(p3_start_wc).publish_state(id(g_p3_start_wc));
+          id(p3_end_wc).publish_state(id(g_p3_end_wc));
+          id(p1_at_field_capacity).publish_state(id(g_p1_at_field_capacity));
+      - logger.log: "Booted; state restored"
+
+  # --- One shared pump shot. Pump is on the HA plug (see substitutions note).
+  #     No confirm loops -> this can never hang. If HA drops mid-shot, the turn-off
+  #     may not land, but your plug + HA auto-off is the stuck-pump safety net. ---
+  - id: shot
+    parameters:
+      seconds: float
+    mode: single
+    then:
+      - homeassistant.service:
+          service: switch.turn_on
+          data:
+            entity_id: ${switch_irrigation_pump}
+      - delay: !lambda "return (uint32_t)(seconds * 1000.0f);"
+      - homeassistant.service:
+          service: switch.turn_off
+          data:
+            entity_id: ${switch_irrigation_pump}
+      - number.increment: daily_irrigation_events    # every shot counts once here
+
+  # --- Lights on: start the day ---
+  - id: lightsonscript
+    mode: single
+    then:
+      - lambda: |-
+          id(p3_wc_at_lights_on).publish_state(id(VWC).state);
+          if (id(es_time).now().is_valid())
+            id(g_lights_on_ran) = id(es_time).now().day_of_year;   // mark done for today
+          auto c1 = id(daily_irrigation_events).make_call(); c1.number_to_min(); c1.perform();
+          auto c2 = id(p1_shot_count).make_call();          c2.number_to_min(); c2.perform();
+          id(total_daily_ml_estimate).publish_state(0);
+          id(p1_at_field_capacity).publish_state(false);
+      - select.set: { id: irrigation_phase, option: "P0" }
+
+  # --- Lights off: begin overnight P3 dryback ---
+  - id: lightsoffscript
+    mode: single
+    then:
+      - lambda: |-
+          id(p3_wc_at_lights_off).publish_state(id(VWC).state);
+          id(p3_start_wc).publish_state(id(last_high).state);
+          auto c = id(irrigation_phase).make_call(); c.set_option("P3"); c.perform();
+
+  # --- P2 window closes -> into P3 (optional end-of-day shot) ---
+  - id: startP3
+    mode: single
+    then:
+      - lambda: |-
+          id(p3_start_wc).publish_state(id(last_high).state);
+          auto c = id(irrigation_phase).make_call(); c.set_option("P3"); c.perform();
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_water
+              - switch.is_on: p2_end_shot
+              - switch.is_off: maintenance_mode
+              - api.connected:
+          then:
+            - sensor.template.publish: { id: last_low, state: !lambda 'return id(VWC).state;' }
+            - logger.log: "P2-end shot to start P3"
+            # counts once in daily_irrigation_events (inside shot) -- no longer double-counted as a P1 shot
+            - script.execute: { id: shot, seconds: !lambda 'return id(p2_irrigation_time).state;' }
+
+  # --- Runs on every VWC update: tracks highs/lows and drives P0/P2/P3 ---
+  - id: vwc_check
+    mode: single
+    then:
+      - lambda: |-
+          float vwc = id(VWC).state;
+          if (isnan(vwc)) return;
+          if (vwc > id(last_high).state) id(last_high).publish_state(vwc);
+          if (vwc < id(last_low).state)  id(last_low).publish_state(vwc);
+
+          std::string phase = id(irrigation_phase).state;
+
+          if (phase == "P0") {
+            bool p0_hit    = (id(p3_wc_at_lights_on).state - vwc) >= id(p0_dryback_target).state;
+            bool p3_hit    = id(currentdryback).state >= id(p3_dryback_target).state;
+            bool floor_hit = vwc <= id(p3_vwc_low_limit).state;
+            if (p0_hit || p3_hit || floor_hit) {
+              ESP_LOGI("irrig", "P0 dryback met -> P1");
+              id(p3_end_wc).publish_state(vwc);
+              auto c = id(irrigation_phase).make_call(); c.set_option("P1"); c.perform();
+              id(last_high).publish_state(vwc);
+              id(last_low).publish_state(vwc);
+            }
+          }
+          else if (phase == "P2") {
+            if (id(auto_water).state && !id(maintenance_mode).state
+                && vwc <= id(p2_min_wc_target).state
+                && millis() >= id(g_next_p2_ms)) {          // frequency gate (replaces the old blocking delay)
+              ESP_LOGI("irrig", "VWC <= P2 target -> P2 shot");
+              id(p2event).execute();
+            }
+          }
+          else if (phase == "P3") {
+            if (id(auto_water).state && !id(maintenance_mode).state
+                && vwc <= id(p3_vwc_low_limit).state) {     // >>> NEW: overnight wilt-floor safety
+              ESP_LOGW("irrig", "P3 VWC below low limit -> emergency shot");
+              id(p3event).execute();
+            }
+          }
+
+  # --- P1 event: field-capacity detection + timed recharge shot ---
+  - id: p1event
+    mode: single
+    then:
+      - lambda: |-
+          // Out of P1 shots -> P2 (lock field capacity if we never detected it)
+          if (id(p1_shot_count).state >= id(p1_target_shots).state) {
+            ESP_LOGI("irrig", "Out of P1 shots -> P2");
+            auto c = id(irrigation_phase).make_call(); c.set_option("P2"); c.perform();
+            if (!id(p1_at_field_capacity).state) {
+              id(field_capacity).publish_state(id(VWC).state);
+              id(p1_at_field_capacity).publish_state(true);
+            }
+            return;
+          }
+          // Field-capacity detection. The `field_capacity > 0` guard stops a
+          // fresh/reset device (FC == 0) from tripping the "within 10%" test.
+          bool plateau    = (id(VWC).state - id(last_low).state) <= 1.1f;
+          bool near_fc     = id(field_capacity).state > 0.0f
+                             && (id(field_capacity).state - id(VWC).state) <= 10.0f;
+          bool used_enough = id(p1_shot_count).state > (id(p1_target_shots).state / 2.0f);
+          if (plateau && near_fc && used_enough) {
+            ESP_LOGI("irrig", "Hit field capacity");
+            id(p1_at_field_capacity).publish_state(true);
+            id(field_capacity).publish_state(id(VWC).state);
+            id(p1_runoff_wc).publish_state(id(last_high).state);
+            id(last_low).publish_state(id(VWC).state);
+            bool generative = id(steering_phase).state == "Generative - Flip"
+                           || id(steering_phase).state == "Generative - Finish";
+            if (id(pw_ec).state <= id(p2_ec_target).state || generative) {
+              auto c = id(irrigation_phase).make_call(); c.set_option("P2"); c.perform();
+            }
+          }
+      # Give the P1 shot only if it's still P1, watering is on, HA is up, not in maintenance.
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_water
+              - switch.is_off: maintenance_mode
+              - api.connected:
+              - lambda: 'return id(irrigation_phase).state == "P1";'
+          then:
+            - sensor.template.publish: { id: last_low, state: !lambda 'return id(VWC).state;' }
+            - script.execute: { id: shot, seconds: !lambda 'return id(p1_irrigation_time).state;' }
+            - number.increment: p1_shot_count
+          else:
+            - logger.log: "P1 shot skipped (auto_water off / HA down / maintenance / not P1)"
+
+  # --- P2 event: maintenance shot ---
+  - id: p2event
+    mode: single
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_water
+              - switch.is_off: maintenance_mode
+              - api.connected:
+              - lambda: 'return id(irrigation_phase).state == "P2";'
+          then:
+            - lambda: |-
+                id(last_high).publish_state(id(VWC).state);
+                id(last_low).publish_state(id(VWC).state);
+            - script.execute: { id: shot, seconds: !lambda 'return id(p2_irrigation_time).state;' }
+            # arm the frequency gate only after a shot actually fired
+            - lambda: 'id(g_next_p2_ms) = millis() + (uint32_t)(id(p2_frequency).state * 60000.0f);'
+          else:
+            - logger.log: "P2 shot skipped (auto_water off / HA down / maintenance / not P2)"
+
+  # --- P3 event: overnight emergency shot when VWC hits the wilt floor ---  >>> NEW
+  - id: p3event
+    mode: single
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_water
+              - switch.is_off: maintenance_mode
+              - api.connected:
+              - lambda: 'return id(irrigation_phase).state == "P3";'
+          then:
+            - lambda: |-
+                id(last_high).publish_state(id(VWC).state);
+                id(last_low).publish_state(id(VWC).state);
+            - script.execute: { id: shot, seconds: !lambda 'return id(p2_irrigation_time).state;' }
+          else:
+            - logger.log: "P3 emergency shot skipped (auto_water off / HA down / maintenance / not P3)"
+
+  # --- pH dosing (local relays; loop is fine, it's not HA-dependent) ---
+  - id: ph_dosing_script
+    mode: single
+    then:
+      - number.set: { id: ph_dose_counter, value: 0 }
+      - while:
+          condition:
+            and:
+              - switch.is_on: auto_ph
+              - switch.is_off: maintenance_mode          # >>> CHANGED: local switch, fail-safe
+              - lambda: |-
+                  float v = id(ph).state;
+                  bool low  = v <= id(ph_goal).state - id(ph_tolerance).state;
+                  bool high = v >= id(ph_goal).state + id(ph_tolerance).state;
+                  bool have_doses = id(ph_dose_counter).state < id(doses_max).state;
+                  return (low || high) && have_doses;
+          then:
+            - number.increment: ph_dose_counter
+            - if:
+                condition:
+                  - lambda: 'return id(ph).state >= id(ph_goal).state + id(ph_tolerance).state;'
+                then:
+                  - switch.turn_on: relay_1
+                  - delay: !lambda "return id(dosing_time).state * 1000;"
+                  - switch.turn_off: relay_1
+            - if:
+                condition:
+                  - lambda: 'return id(ph).state <= id(ph_goal).state - id(ph_tolerance).state;'
+                then:
+                  - switch.turn_on: relay_2
+                  - delay: !lambda "return id(dosing_time).state * 1000;"
+                  - switch.turn_off: relay_2
+            # Wait a FULL pH update interval (15s) after dosing so the next
+            # decision reads a settled value instead of re-dosing on a stale one.
+            - delay: 15s
+      - delay: !lambda "return id(dosing_interval).state * 2 * 1000;"
+
+  # --- Nutrient dosing (local relays A + B). NOTE: still regulates on EC2 (a soil
+  #     probe) and never pulses relay_5 (Pump C) -- flagged in the review. Left as
+  #     you had it apart from the maintenance guard; wire a reservoir EC + add a
+  #     relay_5 step when you're ready. ---
+  - id: nutrient_dosing_script
+    mode: single
+    then:
+      - if:
+          condition:
+            - switch.is_on: auto_dose
+            - switch.is_off: maintenance_mode            # >>> CHANGED: local switch, fail-safe
+          then:
+            - number.set: { id: ec_dose_counter, value: 0 }
+            - while:
+                condition:
+                  lambda: |-
+                    float ec = id(EC2).state;
+                    bool oor = ec < (id(ec_target).state - id(ec_tolerance).state)
+                            || ec > (id(ec_target).state + id(ec_tolerance).state);
+                    return oor && id(ec_dose_counter).state < id(ec_doses_max).state;
+                then:
+                  - number.increment: ec_dose_counter
+                  - switch.turn_on: relay_3
+                  - delay: !lambda "return id(ec_dosing_time).state * 1000;"
+                  - switch.turn_off: relay_3
+                  - delay: 10s
+                  - switch.turn_on: relay_4
+                  - delay: !lambda "return id(ec_dosing_time).state * 1000;"
+                  - switch.turn_off: relay_4
+                  - delay: !lambda "return id(dosing_interval).state * 1000;"
+            - delay: !lambda "return id(dosing_interval).state * 2 * 1000;"
