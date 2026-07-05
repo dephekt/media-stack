@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>2×4 Brain — a friendly config review</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#ffffff; --ink:#1c1b19; --muted:#6b675f; --line:#e6e2da;
+    --accent:#3f7d54; --accent-ink:#2c5b3d;
+    --high:#c0392b; --high-bg:#fbeae7;
+    --med:#b7791f; --med-bg:#fbf1de;
+    --low:#5b6b7a; --low-bg:#eef1f4;
+    --ok:#2f7a45; --maybe:#a86a12;
+    --chip:#efece5;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 18px rgba(0,0,0,.05);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#141513; --card:#1e201d; --ink:#eceae5; --muted:#a09b90; --line:#2e312c;
+      --accent:#6bbf86; --accent-ink:#8fd3a5;
+      --high:#f0857a; --high-bg:#39211e;
+      --med:#e3b774; --med-bg:#332816;
+      --low:#a9bccb; --low-bg:#20262b;
+      --ok:#79d094; --maybe:#e0b064;
+      --chip:#2a2c27;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+  a{color:var(--accent-ink)}
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--chip); padding:.1em .38em; border-radius:6px; font-size:.86em;
+    word-break:break-word;
+  }
+
+  /* Header */
+  header{padding:56px 0 20px}
+  .eyebrow{color:var(--accent-ink);font-weight:650;letter-spacing:.04em;text-transform:uppercase;font-size:.78rem}
+  h1{font-size:2.05rem;line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lede{color:var(--muted);font-size:1.08rem;max-width:60ch;margin:0}
+
+  /* Sticky mini-nav */
+  nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);
+      backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:22px 0 8px}
+  nav .wrap{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+  nav a{font-size:.86rem;text-decoration:none;color:var(--muted);padding:5px 10px;border-radius:999px;white-space:nowrap}
+  nav a:hover{color:var(--ink);background:var(--chip)}
+
+  section{padding:26px 0 6px}
+  h2{font-size:1.35rem;margin:.2em 0 .1em;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:.1em 0 1.1em;font-size:.98rem}
+
+  /* Fix-first callout */
+  .callout{background:var(--high-bg);border:1px solid color-mix(in srgb,var(--high) 30%,var(--line));
+    border-radius:var(--radius);padding:18px 20px;margin:12px 0 4px}
+  .callout h3{margin:0 0 .5em;font-size:1.02rem;color:var(--high)}
+  .callout ol{margin:0;padding-left:1.2em}
+  .callout li{margin:.3em 0}
+  .callout a{color:inherit;text-decoration:none;font-weight:600;border-bottom:1px dashed color-mix(in srgb,var(--high) 45%,transparent)}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 20px;margin:14px 0;border-left:5px solid var(--low)}
+  .card.high{border-left-color:var(--high)}
+  .card.med{border-left-color:var(--med)}
+  .card.low{border-left-color:var(--low)}
+  .card h3{margin:.1em 0 .5em;font-size:1.08rem;line-height:1.3}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{font-size:.7rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    padding:3px 8px;border-radius:999px;background:var(--chip);color:var(--muted)}
+  .chip.high{background:var(--high-bg);color:var(--high)}
+  .chip.med{background:var(--med-bg);color:var(--med)}
+  .chip.low{background:var(--low-bg);color:var(--low)}
+  .chip.ok{background:transparent;color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 45%,transparent)}
+  .chip.maybe{background:transparent;color:var(--maybe);border:1px solid color-mix(in srgb,var(--maybe) 45%,transparent)}
+  .what{margin:.2em 0 .6em}
+  .grow{margin:.2em 0 .4em;color:var(--ink)}
+  .grow b{color:var(--accent-ink)}
+  details{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+  details summary{cursor:pointer;color:var(--muted);font-size:.9rem;font-weight:600;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary::before{content:"▸ ";color:var(--accent)}
+  details[open] summary::before{content:"▾ "}
+  details .body{padding:8px 2px 2px;font-size:.94rem;color:var(--muted)}
+  details .body b{color:var(--ink)}
+  details .body p{margin:.5em 0}
+
+  /* Recommendation block */
+  .rec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:6px 22px 18px;margin:14px 0}
+  .rec h3{font-size:1.02rem;margin:1.1em 0 .3em}
+  .verdict{display:inline-block;font-weight:700;color:var(--accent-ink);
+    background:color-mix(in srgb,var(--accent) 15%,transparent);padding:4px 12px;border-radius:999px;margin:14px 0 4px;font-size:.9rem}
+  .rec ul{padding-left:1.15em}
+  .rec li{margin:.35em 0}
+  .steps{counter-reset:step;list-style:none;padding:0;margin:.4em 0}
+  .steps li{position:relative;padding:2px 0 2px 40px;margin:.7em 0}
+  .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;
+    width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
+    display:grid;place-items:center;font-size:.82rem;font-weight:700}
+
+  footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);
+    margin-top:34px;padding:22px 0 60px}
+  footer b{color:var(--ink)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:.6em 0}
+  .legend span{display:inline-flex;gap:6px;align-items:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">ESPHome config review · KC868-A6 “2×4 Brain”</div>
+    <h1>A friendly review of your crop-steering controller</h1>
+    <p class="lede">Your config is genuinely ambitious — a full P0→P3 irrigation state
+    machine with pH &amp; nutrient dosing, soil VWC/EC math, and VPD. This is what I'd
+    fix first, the smaller stuff after, and a straight answer to
+    “should I rebuild it as a component?”</p>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <a href="#fix-first">🔴 Fix first</a>
+    <a href="#correctness">Other bugs</a>
+    <a href="#cleanups">Quick cleanups</a>
+    <a href="#insane">“Is it insane to manage?”</a>
+    <a href="#how">How this was checked</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="fix-first">
+    <h2>Fix these three first</h2>
+    <p class="sub">Everything else is polish. These can crash the box or hurt the crop.</p>
+
+    <div class="callout">
+      <h3>The 10-second version</h3>
+      <ol>
+        <li><a href="#bug-modulo">P1&nbsp;Frequency = 0 crashes the controller in a boot-loop.</a></li>
+        <li><a href="#bug-pump">A Home&nbsp;Assistant hiccup can leave the pump stuck ON (flood) or stall watering.</a></li>
+        <li><a href="#bug-p3">There is no watering safety net overnight (P3) — the low-moisture alarm is never acted on.</a></li>
+      </ol>
+    </div>
+
+    <article class="card high" id="bug-modulo">
+      <div class="chips"><span class="chip high">High</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>Setting “P1 Frequency” to 0 crashes the controller — on a loop</h3>
+      <p class="what">The once-a-minute clock does <code>minutes % P1_frequency</code> to decide
+      when to water. The P1&nbsp;Frequency box lets you enter <b>0</b>, and dividing by zero makes
+      the ESP32 panic and reboot. Because that line runs every minute, it reboots again as soon as
+      it comes back — a loop that only stops when you change the value.</p>
+      <p class="grow"><b>Why it matters:</b> one innocent-looking setting takes the whole controller
+      offline — watering, dosing and sensors all dead — until it's corrected some other way.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> the <code>time:</code> minute-trigger lambda; number <code>p1_frequency</code>
+          has <code>min_value: 0</code>.</p>
+          <p><b>Fix:</b> guard the math — <code>if (freq &gt; 0 &amp;&amp; minutes % freq == 0)</code> —
+          and set the number's <code>min_value</code> to <code>1</code> so 0 can't be entered.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card high" id="bug-pump">
+      <div class="chips"><span class="chip high">High</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>A Home Assistant hiccup can leave the pump stuck ON — or stall watering</h3>
+      <p class="what">The pump is switched through a Home&nbsp;Assistant service, and after each
+      on/off the script sits in a <code>while</code> loop waiting for HA to confirm the state — with
+      <b>no timeout</b>. If Wi-Fi or HA drops right then, that loop spins forever: the irrigation
+      script (single-run) never finishes, so no further shots happen. And if the pump was mid-shot
+      when the link dropped, the turn-off path may never be reached — so it can stay energized.</p>
+      <p class="grow"><b>Why it matters:</b> a brief network blip can <b>flood the tray</b> or freeze
+      watering for the rest of the day. This is the scariest one.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>p1event</code> / <code>p2event</code>, the
+          <code>while: binary_sensor.is_off/is_on: ipump</code> confirm-loops (no timeout, no
+          <code>api.connected</code> re-check inside).</p>
+          <p><b>Fix now:</b> add a retry cap / timeout to each loop, re-check <code>api.connected</code>
+          inside it, and fail safe (assume off / abort) on timeout.</p>
+          <p><b>Better:</b> drive the pump from a <b>local relay</b> (you have a spare) with an
+          on-device max-run timeout, and just mirror the state to HA — no round-trip, no offline
+          failure mode. More on this in the last section.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med" id="bug-p3">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>There's no watering during P3 — the overnight safety net never fires</h3>
+      <p class="what">You have a <code>P3 Needs Water</code> low-moisture flag
+      (<code>VWC ≤ P3 VWC Low Limit</code>) — but nothing reads it, and <code>vwc_check</code> only
+      has P0 and P2 branches. There is simply no code that waters during P3. So once you're in the
+      overnight dryback, substrate can fall past your hard low limit and the controller just watches.</p>
+      <p class="grow"><b>Why it matters:</b> on a hot night an over-aggressive dryback can reach
+      <b>wilt territory</b> with the safety you thought you had never triggering.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>vwc_check</code> (P0 + P2 branches only); <code>p3_needs_water</code>
+          is defined but consumed nowhere.</p>
+          <p><b>Fix:</b> add a P3 branch to <code>vwc_check</code> that fires one emergency shot when
+          <code>p3_needs_water</code> is true (still respecting <code>auto_water</code> /
+          <code>api.connected</code> / maintenance mode).</p>
+        </div>
+      </details>
+    </article>
+  </section>
+
+  <section id="correctness">
+    <h2>Other correctness bugs</h2>
+    <p class="sub">Real, but lower stakes — fix as you get to them.</p>
+
+    <article class="card med" id="bug-time">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip maybe">~ Verify</span></div>
+      <h3>The daily schedule hinges on an exact one-second match (and may not even compile)</h3>
+      <p class="what">Lights-on/off and P2-close fire only when the clock string equals the set time
+      to the exact second, in a one-minute window. If the device is rebooting or offline during that
+      minute, the whole day's transitions are skipped. Separately: the <code>to_string()</code> used
+      on the Home&nbsp;Assistant time text has <b>no matching version</b> in the ESPHome I checked —
+      so either you're on a build where it exists, or this section doesn't compile at all.</p>
+      <p class="grow"><b>Why it matters:</b> the entire day cycle rides on a brittle one-second string
+      match. Worth confirming it even builds.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> the <code>time:</code> trigger — <code>str == to_string(id(lights_on_time).state)</code>.</p>
+          <p><b>Fix:</b> stop string-matching. Use native <code>time.on_time</code> with
+          <code>at:</code>, or drive transitions from the HA <code>input_datetime</code> directly.
+          (This also sidesteps the <code>to_string</code> question entirely.)</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>A reboot near lights-on skips the daily counter reset</h3>
+      <p class="what">The daily shot counters zero out only inside the lights-on script — which is
+      gated by that same one-second match, with no boot catch-up. Miss it (reboot / offline) and the
+      counters stay where they were.</p>
+      <p class="grow"><b>Why it matters:</b> a stale <code>p1_shot_count</code> starts the day already
+      "out of P1 shots," so the controller <b>skips the P1 recharge ramp</b> and jumps straight to P2.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>lightsonscript</code> (<code>number_to_min</code> on the counters).</p>
+          <p><b>Fix:</b> reset from an <code>on_time</code> at the configured time with a per-day
+          "already reset" guard, or reconcile at boot from current-time vs lights-on.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>Nutrient Pump C never runs, and dosing watches the wrong probe</h3>
+      <p class="what">The dosing loop pulses Pump&nbsp;A then Pump&nbsp;B — <code>relay_5</code>
+      "Nutrient C" is defined but <b>never switched on anywhere</b>, so a 3-part recipe silently
+      drops part C. And the loop decides based on <code>EC2</code>, which is the conductivity of a
+      <b>soil probe</b>, not your reservoir — so it's chasing a signal that lags reservoir changes
+      badly.</p>
+      <p class="grow"><b>Why it matters:</b> wrong nutrient ratios (A/B only), and dosing that either
+      never converges or reacts to the wrong thing — <b>mis-fertilization</b>.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>nutrient_dosing_script</code> (only <code>relay_3</code>/<code>relay_4</code>
+          fire; condition reads <code>id(EC2).state</code>).</p>
+          <p><b>Fix:</b> add a Pump-C step (or document that it's intentionally 2-part), and regulate
+          on a dedicated <b>reservoir</b> EC sensor rather than the substrate probe.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip maybe">~ Plausible</span></div>
+      <h3>“Field capacity” can lock in too early on a fresh start</h3>
+      <p class="what">On a new or factory-reset device <code>field_capacity</code> starts at 0, which
+      makes one of the detection guards (<code>field_capacity − VWC ≤ 10</code>) always true. So
+      first-cycle field capacity can be declared off a bad baseline once you're past half your shots.</p>
+      <p class="grow"><b>Why it matters:</b> an under-estimated field capacity skews your P2 targets and
+      dryback math for the whole run. (A sibling guard gives <i>some</i> protection, so impact depends
+      on your dynamics — hence "plausible.")</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>p1event</code>, second <code>if</code> block; <code>field_capacity</code>
+          seeded from the <code>0</code>-initialised global.</p>
+          <p><b>Fix:</b> require field capacity to be validly set before that guard counts, and gate the
+          first-ever detection on an absolute saturation criterion.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>The end-of-day shot isn't confirmed but still counts</h3>
+      <p class="what">Unlike the P1/P2 shots, the P3-start shot fires on/off with no pump confirmation
+      and no <code>api.connected</code> guard — then increments the shot counters regardless of whether
+      the command actually landed.</p>
+      <p class="grow"><b>Why it matters:</b> a dropped command means <b>no water but a counted shot</b>
+      (or an unverified turn-off), corrupting the day's accounting and water estimate.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>startP3</code>, the <code>p2_end_shot</code> branch.</p>
+          <p><b>Fix:</b> reuse the confirmed on/off pattern (with a timeout), and increment counters
+          only after a confirmed run.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card med">
+      <div class="chips"><span class="chip med">Medium</span><span class="chip ok">✓ Confirmed</span></div>
+      <h3>Long waits inside single-run scripts silently drop needed shots</h3>
+      <p class="what">Every script is <code>mode: single</code>. <code>p2event</code> ends with a
+      blocking delay of up to the whole P2 frequency (minutes → hours) used as the spacing timer. While
+      it's parked there, any genuinely-needed shot is dropped rather than queued, and the whole timer is
+      lost if the device reboots mid-window.</p>
+      <p class="grow"><b>Why it matters:</b> irrigation timing degrades quietly — the "frequency" is a
+      fragile blocking delay, not a real schedule.</p>
+      <details>
+        <summary>Where &amp; how to fix</summary>
+        <div class="body">
+          <p><b>Where:</b> <code>p2event</code> trailing <code>delay: p2_frequency*60*1000</code>;
+          caller <code>vwc_check</code>.</p>
+          <p><b>Fix:</b> track "next-allowed-shot" as a timestamp/global and gate on it, instead of
+          holding the script open. Consider <code>mode: queued</code> where re-entry should count.</p>
+        </div>
+      </details>
+    </article>
+
+    <article class="card low">
+      <div class="chips"><span class="chip low">Low</span><span class="chip maybe">~ Plausible</span></div>
+      <h3>Two smaller ones</h3>
+      <p class="what"><b>Dosing can overshoot</b> — after a dose the loop re-reads slightly before the
+      sensor's next update, so one extra dose can fire on a stale reading (bounded by your max-dose cap).
+      <b>Maintenance mode isn't fully honored</b> — the nutrient/startP3 guards can pass if the HA
+      maintenance switch reads empty (e.g. right after boot), unlike the pH loop which is fail-safe.
+      <b>The daily-liters estimate</b> mis-prices the P3-start shot (cosmetic).</p>
+    </article>
+  </section>
+
+  <section id="cleanups">
+    <h2>Quick cleanups — where the “insane to manage” feeling actually comes from</h2>
+    <p class="sub">No behavior change; these are the maintainability wins.</p>
+
+    <article class="card low">
+      <div class="chips"><span class="chip low">Housekeeping</span></div>
+      <ul style="margin:.2em 0 .2em 0;padding-left:1.15em">
+        <li><b>Stop logging every line into a sensor.</b> <code>logger</code> is at
+          <code>VERBOSE</code> and every log line is published into a Home&nbsp;Assistant text_sensor —
+          that's API + recorder spam and a truncated, near-useless "log." Drop it; run at
+          <code>INFO</code> and use the web/OTA log stream.</li>
+        <li><b>De-duplicate the copy-pasted math</b> <i>(biggest win)</i>. The VPD formula is
+          hand-copied <b>6×</b> (and the constants have already drifted between copies), and the P1/P2
+          shot-time &amp; volume math is duplicated <b>4×</b>. Collapse each into one
+          <code>!include</code> fragment so a fix happens once.</li>
+        <li><b>Trim persistence.</b> Keep <code>restore_value: true</code> on real config (targets,
+          tolerances, steering phase) but not on per-cycle counters — you pay flash wear without
+          reliable persistence.</li>
+        <li><b>Delete dead weight:</b> logger tags that match no component, the unused
+          <code>rs232</code> UART and <code>spi</code> bus, and the disabled TDS sensors. If the DAC
+          "dimmers" drive a linear 0–10&nbsp;V buffer, set <code>gamma_correct: 1.0</code>.</li>
+      </ul>
+    </article>
+  </section>
+
+  <section id="insane">
+    <h2>“Is it insane to manage? Should I make it a component?”</h2>
+    <p class="sub">The honest answer, and what I'd actually do.</p>
+
+    <div class="rec">
+      <span class="verdict">Don't rewrite it as a custom C++ component.</span>
+      <p>The pain here is <b>one 2000-line file with copy-pasted logic</b> — not a limitation of
+      ESPHome. A C++ component is the most work for the least payoff:</p>
+      <ul>
+        <li><b>It can't act on its own anyway.</b> The pump, the clock, the lights/P2 times, and the
+          maintenance switch all live in Home&nbsp;Assistant, and the scripts already stop when HA is
+          unreachable. So an on-device C++ "brain" <b>still can't water or dose if HA is down</b> — the
+          usual reason to embed a state machine doesn't apply.</li>
+        <li><b>It's the heaviest option.</b> A faithful component is a several-hundred-line Python +
+          C++ project (ESPHome's own <code>sprinkler</code> and <code>thermostat</code> components are
+          <i>simpler</i> than this), with build breakage on ESPHome updates and slow reflash-cycle
+          debugging — the exact pain you already feel with the pinned <code>mod_ph</code> component.</li>
+        <li><b>You'd lose live tuning.</b> Every dashboard slider would have to be re-plumbed as a
+          schema field and re-exposed — re-implementing what template numbers give you for free.</li>
+      </ul>
+
+      <h3>What I'd do instead</h3>
+      <ol class="steps">
+        <li><b>Now (biggest relief, low effort):</b> split the monolith into ESPHome
+          <code>packages:</code> / <code>!include</code> files by concern (board+buses · environment/VPD ·
+          soil VWC+EC · dosing · irrigation state machine · HA entities), and collapse the duplicated
+          VPD / shot math. Pure ESPHome, no toolchain, still fully dashboard-tunable. Fix the Tier-1
+          bugs in the same pass. <b>This resolves most of the "insane" feeling by itself.</b></li>
+        <li><b>Later (optional):</b> since it's already HA-centric, move the slow phase logic into Home
+          Assistant — Node-RED for a visual state machine, or pyscript/AppDaemon for real Python with
+          history and logs — and leave ESPHome as a clean sensor + relay node. Keep <b>thin on-device
+          safety</b> (local-relay pump with a max-run watchdog, max-dose ceiling, float-switch cutoff)
+          so a network blip can never overdose or leave the pump on.</li>
+      </ol>
+      <p style="color:var(--muted);margin-top:1em">A custom component is at best worth it for one or two
+      genuinely awkward helper calculations — never for the whole brain.</p>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>How this review was done</h2>
+    <div class="rec" style="padding-top:16px">
+      <p>Your config was read end-to-end and analyzed from four independent angles (structure, bugs,
+      maintainability, ESPHome idioms), then <b>every bug claim was independently re-checked by a
+      separate pass that tried to disprove it</b> — several first-draft findings were downgraded or
+      corrected that way. Claims were cross-checked against the actual ESPHome source.</p>
+      <p class="legend">
+        <span><span class="chip ok">✓ Confirmed</span> certain from the config / source</span>
+        <span><span class="chip maybe">~ Plausible</span> real mechanism; impact depends on your settings</span>
+      </p>
+      <p style="color:var(--muted)">Based on the config as shared. No secrets are exposed here — those
+      stay as <code>!secret</code> references in your YAML. This is a friendly second opinion, not a
+      guarantee; validate fixes on your own setup before trusting them with a live crop.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <b>2×4 Brain</b> — ESPHome crop-steering config review · shared privately, not indexed.
+  </div>
+</footer>
+
+</body>
+</html>
