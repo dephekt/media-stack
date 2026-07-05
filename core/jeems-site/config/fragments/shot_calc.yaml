@@ -1,0 +1,46 @@
+# Reusable irrigation-time + shot-volume calculators for one phase
+# (used as an ESPHome package).
+#
+# Replaces the four near-identical P1/P2 lambdas in the original config (they
+# differed only by which shot-size number they read). Now the media/drip math
+# lives in one place, so a formula change happens once instead of four times.
+#
+# Pull it in once per phase via the top-level `packages:` block:
+#   packages:
+#     shot_p1: !include { file: fragments/shot_calc.yaml,
+#       vars: { prefix: "P1", size_id: p1_shot_size, time_id: p1_irrigation_time, vol_id: p1_shot_volume } }
+#
+# vars:
+#   prefix   - display-name prefix (e.g. "P1")
+#   size_id  - id of the shot-size % number for this phase
+#   time_id  - id to give the irrigation-time (seconds) sensor
+#   vol_id   - id to give the shot-volume (ml) sensor
+
+sensor:
+  - platform: template
+    id: ${time_id}
+    name: "${prefix} Irrigation Time"
+    icon: "mdi:clock-outline"
+    unit_of_measurement: seconds
+    accuracy_decimals: 1
+    lambda: |-
+      // ml of water for this shot % of the media's total water-holding capacity
+      float shot_ml = (id(media_volume).state * 3.78541f)      // gal -> L
+                      * (id(media_vwc).state / 100.0f)          // water-holding capacity
+                      * (id(${size_id}).state / 100.0f)         // shot size %
+                      * 1000.0f;                                // L -> ml
+      float ml_per_second = id(drip_rate).state / 60.0f;        // ml/min -> ml/s
+      if (ml_per_second <= 0) return 0;
+      return shot_ml / ml_per_second;
+
+  - platform: template
+    id: ${vol_id}
+    name: "${prefix} Shot Volume Target"
+    icon: "mdi:water"
+    unit_of_measurement: ml
+    accuracy_decimals: 0
+    lambda: |-
+      return (id(media_volume).state * 3.78541f)
+             * (id(media_vwc).state / 100.0f)
+             * (id(${size_id}).state / 100.0f)
+             * 1000.0f;
