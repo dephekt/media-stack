@@ -19,7 +19,7 @@ Read `README.md` first. This is a reference, not a tutorial.
 - **Grow App** (`grow/`): LAN-local grow-app site HMI for Daniel's grow, plus a per-site InfluxDB 2.7 time-series store and a history-recorder sidecar that subscribes to MQTT and writes readings to InfluxDB. No Pangolin or Keycloak in Phase 1; HMI exposed directly on host port `3080`.
 - **Penpot** (`penpot/`): Self-hosted design workspace at `https://design.ai.${DOMAIN}` for grow-app HMI redesign loops. Pangolin routes the app, but Penpot uses Keycloak OIDC directly with Pangolin SSO disabled.
 - **Kanban** (`kanban/`): Shared Kanboard tracker at `https://kanban.ai.dephekt.net` with direct LAN fallback on `http://containers.home.arpa:8097`.
-- **CCI Black Book MCP** (`cci/`): MCP-only CCI Black Book retrieval service at `https://cci.ai.${DOMAIN}/mcp`. Pangolin SSO is disabled; Codex/Claude Code send bearer tokens directly.
+- **Grow Book MCP** (`grow-book-mcp/`): MCP-only multi-book grow retrieval service (Voyage `context-4` text + `multimodal-3.5` page-image embeddings, RRF-fused with FTS) at `https://cci.ai.${DOMAIN}/mcp`. The public domain was intentionally kept as `cci.ai` when the stack was renamed from `cci`, so the URL and TLS cert are unchanged. Pangolin SSO is disabled; Codex/Claude Code send bearer tokens directly.
 
 ### Monitoring & alerting (`monitoring/`)
 Three local containers + two SaaS witnesses. Local Apprise paths land in Discord + Matrix during the migration window; UptimeRobot remains Discord + mobile push only. See `monitoring/README.md` for the routing matrix and the constellation-of-alerts diagnostic pattern.
@@ -53,7 +53,7 @@ Three local containers + two SaaS witnesses. Local Apprise paths land in Discord
 ├─ grow/                         # grow-app site-mode HMI + InfluxDB + history-recorder
 ├─ penpot/                       # Penpot design workspace
 ├─ kanban/                       # Kanboard + /i/<TASK_REF> redirector
-├─ cci/                          # CCI Black Book MCP retrieval service
+├─ grow-book-mcp/                # Grow Book MCP retrieval service (multi-book; cci.ai domain)
 ├─ keycloak-import/              # Realm imports (git-ignored)
 └─ keycloak-export/              # Realm exports (git-ignored)
 ```
@@ -71,7 +71,7 @@ Each stack dir contains a `docker-compose.yml`, optional `config.env`, optional 
 **Always use the Makefile** — never call `docker compose` directly. Direct invocations bypass the env exports the Makefile provides; in particular `${DOMAIN}` would render empty in Pangolin labels and break resource registration. Every deploy goes through `make`.
 
 ### How targets are generated
-- `STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban cci` — list of every stack.
+- `STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban grow-book-mcp` — list of every stack.
 - `SERVICES_<stack> := svc1 svc2 ...` — per-stack service list, used to auto-generate per-service targets.
 - `Makefile.include` evaluates `STACK_RULES` and `SERVICE_RULES` over those lists to emit `<stack>-up/-down/-restart/-logs` and `<svc>-up/-restart/-logs/-stop/-start` for every name. When a service name matches its stack name (e.g. `pangolin`/`pangolin`), the SERVICE_RULES generation is skipped for that service so `<name>-up` resolves to the whole-stack rule, not just one service.
 - Per-stack Docker context: `STACK_CONTEXT(stack) = $(or $(CONTEXT_$(stack)),$(DOCKER_CONTEXT))`. Default is `media-server`; override per stack via `CONTEXT_<stack>=<context>`. Currently `CONTEXT_pangolin=pangolin-edge` routes pangolin's deploys to the edge VPS while every other stack lands on `media-server`.
@@ -92,7 +92,7 @@ make logs-<stack>           # Follow logs for one stack
 Run `make` with no args to see every generated target.
 
 ## Deployment
-The `containers` Docker context (alias: `media-server`) is configured at `ssh://daniel@containers`. The `pangolin-edge` context is `ssh://root@pangolin.dephekt.net`. Both are SSH-based; Docker CLI on this local box forwards commands to the remote daemon. Bind-mount paths resolve on the remote host, so absolute paths in compose files refer to the remote filesystem.
+The `containers` Docker context (alias: `media-server`) is configured at `ssh://daniel@containers` — the `containers` SSH host alias resolves to `containers.home.arpa` (reachable directly via `ssh containers.home.arpa` for one-off host tasks like staging bind-mount data). The `pangolin-edge` context is `ssh://root@pangolin.dephekt.net`. Both are SSH-based; Docker CLI on this local box forwards commands to the remote daemon. Bind-mount paths resolve on the remote host, so absolute paths in compose files refer to the remote filesystem.
 
 ```bash
 make inject-secrets && make sync-secrets && make up

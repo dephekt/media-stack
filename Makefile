@@ -24,7 +24,7 @@ export
 CONTEXT_HOST=$(shell docker context inspect $(DOCKER_CONTEXT) -f '{{.Endpoints.docker.Host}}')
 REMOTE_HOST=$(shell echo $(CONTEXT_HOST) | sed 's|^ssh://||')
 
-STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban cci
+STACKS := core media immich iptv channels monitoring pangolin mqtt grow matrix penpot kanban grow-book-mcp
 
 SERVICES_core   := newt auth ldap homepage db update-manager agent-kb jeems
 SERVICES_media  := jellyfin radarr sonarr nzbget seerr
@@ -38,7 +38,7 @@ SERVICES_grow    := grow-app-site grow-influxdb grow-history-recorder
 SERVICES_matrix  := tuwunel element-web
 SERVICES_penpot  := penpot-frontend penpot-backend penpot-mcp penpot-exporter penpot-postgres penpot-valkey
 SERVICES_kanban  := kanban-router kanboard kanboard-admin-init kanboard-oauth-init kanban-ref
-SERVICES_cci     := cci-blackbook
+SERVICES_grow-book-mcp := grow-book-mcp
 
 REQUIRED_SECRETS := \
 	core/secrets/KEYCLOAK_ADMIN_PASSWORD.env \
@@ -68,7 +68,7 @@ REQUIRED_SECRETS := \
 	matrix/secrets/TUWUNEL_OIDC_CLIENT_SECRET \
 	penpot/secrets/penpot.env \
 	kanban/secrets/kanboard.env \
-	cci/secrets/cci.env
+	grow-book-mcp/secrets/cci.env
 
 MEDIA_SYNC_REQUIRED := \
 	core/secrets \
@@ -103,12 +103,12 @@ MEDIA_SYNC_REQUIRED := \
 	kanban/kanboard \
 	kanban/keycloak \
 	kanban/docker-compose.yml \
-	cci/secrets \
-	cci/app \
-	cci/Dockerfile \
-	cci/pyproject.toml \
-	cci/uv.lock \
-	cci/docker-compose.yml
+	grow-book-mcp/secrets \
+	grow-book-mcp/app \
+	grow-book-mcp/Dockerfile \
+	grow-book-mcp/pyproject.toml \
+	grow-book-mcp/uv.lock \
+	grow-book-mcp/docker-compose.yml
 
 MEDIA_SYNC_OPTIONAL := \
 	keycloak-import/
@@ -358,7 +358,7 @@ ldap-reset-admin:
 # YAML target uses `git ls-files` so rendered/gitignored YAML (e.g. the
 # 1Password-rendered pangolin/config/config.yml) is automatically skipped.
 
-PY_LINT_PATHS   := monitoring/service-checks kanban/ref cci/app cci/tests
+PY_LINT_PATHS   := monitoring/service-checks kanban/ref grow-book-mcp/app grow-book-mcp/tests
 SH_LINT_FILES   := $(shell find . -type f -name '*.sh' -not -path './.git/*' -not -path '*/secrets/*')
 YAML_LINT_FILES := $(shell git ls-files '*.yml' '*.yaml' '*.yml.template' '*.yaml.template')
 
