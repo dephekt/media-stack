@@ -1,0 +1,69 @@
+name: grow-book-mcp
+
+services:
+  grow-book-mcp:
+    build:
+      context: .
+    image: grow-book-mcp:local
+    container_name: grow-book-mcp
+    restart: unless-stopped
+    env_file:
+      - ./secrets/cci.env
+    environment:
+      # Multi-source corpus: every PDF in /data/source is indexed as a distinct,
+      # filterable book. (Formerly a single CCI_SOURCE_PDF.)
+      CCI_SOURCE_DIR: /data/source
+      CCI_INDEX_DIR: /data/index
+      CCI_CACHE_DIR: /data/cache
+      # Dual Voyage index: context-4 over OCR text chunks + multimodal-3.5 over page
+      # renders, RRF-fused with FTS. VOYAGE_API_KEY + CCI_VOYAGE_RETENTION_CONFIRMED
+      # come from ./secrets/cci.env (see README). Needs outbound HTTPS to api.voyageai.com.
+      CCI_EMBEDDING_BACKEND: voyage
+      CCI_VOYAGE_TEXT_MODEL: voyage-context-4
+      CCI_VOYAGE_IMAGE_MODEL: voyage-multimodal-3.5
+      CCI_VOYAGE_OUTPUT_DIM: "1024"
+      CCI_RENDER_DPI: "100"
+      # Document grouping packs to real Voyage token counts, so this is a true-token
+      # budget under the 32000 context window (no per-corpus tuning needed).
+      CCI_DOC_TOKEN_BUDGET: "28000"
+      CCI_MM_TOKEN_BUDGET: "200000"
+      CCI_MIN_VECTOR_SCORE: "0.20"
+      CCI_MIN_IMAGE_SCORE: "0.0"
+      CCI_RRF_WEIGHT_IMAGE: "2.0"
+      CCI_MAX_UNITS_PER_PAGE: "2"
+      CCI_BLANK_MIN_CHARS: "100"
+      CCI_BLANK_MAX_INK: "0.02"
+      CCI_BLANK_MAX_COLOR: "0.005"
+      CCI_MCP_HOST: 0.0.0.0
+      CCI_MCP_PORT: "8000"
+    expose:
+      - "8000"
+    volumes:
+      - /mnt/data/grow-book-mcp/source:/data/source:ro
+      - /mnt/data/grow-book-mcp/index:/data/index
+      - /mnt/data/grow-book-mcp/cache:/data/cache
+    labels:
+      # Public domain intentionally kept as cci.ai during the rename so the MCP URL and
+      # its TLS cert are unchanged; only the internal resource id/name are generalized.
+      - "pangolin.proxy-resources.grow-book-mcp.name=Grow Book MCP"
+      - "pangolin.proxy-resources.grow-book-mcp.protocol=http"
+      - "pangolin.proxy-resources.grow-book-mcp.full-domain=cci.ai.${DOMAIN}"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].enabled=true"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].method=http"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].port=8000"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].healthcheck.hostname=grow-book-mcp"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].healthcheck.port=8000"
+      - "pangolin.proxy-resources.grow-book-mcp.targets[0].healthcheck.path=/healthz"
+      - "pangolin.proxy-resources.grow-book-mcp.auth.sso-enabled=false"
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  proxy:
+    external: true
