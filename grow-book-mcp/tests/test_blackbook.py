@@ -660,9 +660,8 @@ class LegacyRebuildTest(unittest.TestCase):
             svc = BlackBookService(make_settings(root), page_source=source)
             with mock.patch.object(
                 BlackBookIndex, "validate_database", side_effect=RuntimeError("validation failed")
-            ):
-                with self.assertRaises(IngestFailed):
-                    svc.ensure_index(force=True)
+            ), self.assertRaises(IngestFailed):
+                svc.ensure_index(force=True)
             self.assertEqual(sqlite_path.read_bytes(), original)
             self.assertEqual(svc.index.schema_version(), 3)
             self.assertEqual(list(sqlite_path.parent.glob("*.tmp")), [])
@@ -1138,9 +1137,8 @@ class IncrementalIngestionTest(unittest.TestCase):
                 service = BlackBookService(make_settings(root))
                 with mock.patch(
                     "cci_blackbook.service.build_dense_provider", return_value=recorder
-                ) as build_provider:
-                    with self.assertRaises(IndexUnavailable):
-                        service.ensure_index(force=force)
+                ) as build_provider, self.assertRaises(IndexUnavailable):
+                    service.ensure_index(force=force)
                 build_provider.assert_not_called()
                 self.assertEqual(recorder.doc_batches, [])
                 self.assertEqual(recorder.image_batches, [])

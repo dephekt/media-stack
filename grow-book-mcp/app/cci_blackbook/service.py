@@ -327,7 +327,7 @@ class BlackBookService:
             raise IngestFailed("corpus produced no indexable text chunks or page images")
 
         self.settings.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
-        handle = tempfile.NamedTemporaryFile(
+        handle = tempfile.NamedTemporaryFile(  # noqa: SIM115 - closed at once; path reused for the atomic swap
             prefix=f".{self.settings.sqlite_path.name}.v4-",
             suffix=".tmp",
             dir=self.settings.sqlite_path.parent,
