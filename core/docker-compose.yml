@@ -132,7 +132,7 @@ services:
       start_period: 30s
 
   homepage:
-    image: ghcr.io/dephekt/homepage-image:edge-hugo0.161.1
+    image: ghcr.io/dephekt/homepage-image:1.0.5-hugo0.161.1
     container_name: homepage
     restart: unless-stopped
     env_file:
