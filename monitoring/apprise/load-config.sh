@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Register monitoring/apprise/monitoring.yaml with the apprise-api container
 # under the 'monitoring' token. Idempotent: safe to re-run after YAML edits.
 #

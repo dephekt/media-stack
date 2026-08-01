@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # NOTE: This stack deploys via the `pangolin-edge` Docker context (remote
 # daemon over SSH). With a remote context, compose resolves bind-mount paths
 # against the LOCAL filesystem and sends those paths to the remote daemon,

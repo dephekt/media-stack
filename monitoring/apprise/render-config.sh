@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Render monitoring config from 1Password. Produces two files:
 #  - monitoring/apprise/monitoring.yaml — apprise routing, gitignored
 #  - monitoring/secrets/healthchecks.env — HC_PING_URL_* env vars for the

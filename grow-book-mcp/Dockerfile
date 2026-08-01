@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 FROM ghcr.io/astral-sh/uv:0.9.21 AS uv
 
 # The dual-index backend embeds via Voyage's HTTP API (api.voyageai.com); the

@@ -142,3 +142,41 @@ TLS termination and certificate provisioning/renewal are handled entirely by Pan
 ## Acknowledgements
 
 **[Dashboard Icons](https://github.com/homarr-labs/dashboard-icons)** — over 1,800 curated icons for services, applications, and tools, designed for dashboards and app directories. They power the homepage service icons. Browse the collection at [dashboardicons.com](https://dashboardicons.com/).
+
+## License
+
+Copyright (c) 2026 Daniel Snider.
+
+Licensed under the **GNU Affero General Public License, version 3 or later**
+(AGPL-3.0-or-later). The full text is in [LICENSE](LICENSE). Contributions
+require an explicit license grant beyond the AGPL — see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+### What is covered
+
+The license applies to the work in this repository: the Compose orchestration,
+entrypoints, health checks, identity and routing configuration, Makefiles, and
+documentation.
+
+It does **not** apply to the container images this stack deploys. Immich,
+Keycloak, Pangolin, Jellyfin, Matrix, Penpot, Kanboard and the rest are
+third-party software under their own licenses — nothing here relicenses them,
+and running this stack means accepting each of those licenses separately.
+
+Note also that the architecture itself is not copyrightable. If the useful thing
+here is the *pattern* — edge proxy with outbound-only tunnels, one IdP in front
+of everything — take the pattern freely. The license covers this particular
+expression of it.
+
+### Third-party configuration
+
+| Path | Origin | License |
+|---|---|---|
+| `immich/hwaccel.ml.yml` | Immich upstream, verbatim | AGPL-3.0 (Immich) |
+| `immich/hwaccel.transcoding.yml` | Immich upstream, verbatim | AGPL-3.0 (Immich) |
+| `pangolin/config/traefik/traefik_config.yml` | Pangolin default template, site-adapted | AGPL-3.0 (Pangolin) |
+| `pangolin/config/traefik/dynamic_config.yml` | Pangolin default template, site-adapted | AGPL-3.0 (Pangolin) |
+
+These carry no SPDX header because they are not original work here. Both
+upstreams are AGPL-licensed, so they combine with this repository without
+conflict.

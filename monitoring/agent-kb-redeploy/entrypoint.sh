@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Log into GHCR once so `docker compose pull` can fetch agent-kb even if the
 # package is private or visibility has not been opened yet, then hand off to
 # supercronic. The daemon (media-server) holds no registry creds of its own --

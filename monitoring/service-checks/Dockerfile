@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 FROM alpine:3.20
 
 # python3 + http/data tooling for the check scripts.

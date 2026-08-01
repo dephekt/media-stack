@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Per-stack context lookup; falls back to DOCKER_CONTEXT (default for most stacks).
 # Set CONTEXT_<stack> in Makefile to override per-stack.
 STACK_CONTEXT = $(or $(CONTEXT_$(1)),$(DOCKER_CONTEXT))

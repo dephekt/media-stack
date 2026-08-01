@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Render config.yml.template -> config.yml using secrets from 1Password.
 # The rendered file is gitignored; the template is committed.
 # Called automatically by `make inject-secrets`. Idempotent.

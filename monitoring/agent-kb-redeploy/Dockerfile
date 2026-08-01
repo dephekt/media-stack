@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Single-purpose redeploy poller. Holds the (rw) docker socket so the
 # network-facing service-checks container never has to. On a cron it polls the
 # GHCR registry and runs a scoped `compose pull/up` of just the agent-kb

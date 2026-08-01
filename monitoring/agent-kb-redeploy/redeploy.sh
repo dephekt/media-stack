@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 # Scoped redeploy of just the agent-kb service in the `core` compose project.
 #
 # `compose pull` fetches the current image for agent-kb's tag; `up -d` recreates

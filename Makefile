@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Daniel Snider
+
 DOCKER_CONTEXT=media-server
 
 # Per-stack context overrides. STACK_CONTEXT helper in Makefile.include picks these up.
